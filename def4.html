@@ -1,0 +1,2335 @@
+drone 2
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Tourist Safety System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            /* India tricolor themed palette */
+            --primary: #138808; /* India green */
+            --secondary: #FF9933; /* Saffron */
+            --accent: #000080; /* Navy (Ashoka Chakra) */
+            --light: #f5f5f5;
+            --dark: #2c3e50;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --success: #27ae60;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0b1320;
+            color: #e2e8f0;
+        }
+        
+        .dashboard-container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+            margin-bottom: 20px;
+            border: 1px solid #1f2937;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background-color: #111827;
+            color: #e2e8f0;
+            font-weight: 600;
+            padding: 15px 20px;
+            border-bottom: 1px solid #1f2937;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .map-container {
+            height: 500px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #1f2937;
+        }
+        
+        .alert-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .alert-high {
+            background-color: var(--danger);
+        }
+        
+        .alert-medium {
+            background-color: var(--warning);
+        }
+        
+        .alert-low {
+            background-color: var(--success);
+        }
+        
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: var(--accent) !important;
+        }
+        
+        .nav-link {
+            font-weight: 600;
+            color: #e2e8f0 !important;
+        }
+
+        .nav-link:hover {
+            color: var(--secondary) !important;
+        }
+        
+        .nav-link.active {
+            color: var(--secondary) !important;
+            border-bottom: 3px solid var(--secondary);
+        }
+
+        /* Dark navbar */
+        .navbar {
+            background-color: #0b1320 !important;
+            border-bottom: 1px solid #1f2937;
+        }
+        .navbar .navbar-toggler {
+            border-color: #334155;
+        }
+        .navbar .navbar-toggler-icon {
+            filter: invert(1) grayscale(100%);
+        }
+        
+        .sidebar {
+            background-color: #0f172a;
+            border-radius: 12px;
+            padding: 20px;
+            height: 100%;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid #1f2937;
+            color: #e2e8f0;
+        }
+        
+        .sidebar-title {
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary);
+        }
+        
+        .risk-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        
+        .high-risk {
+            background-color: rgba(255, 153, 51, 0.15);
+            color: var(--secondary);
+        }
+        
+        .medium-risk {
+            background-color: rgba(243, 156, 18, 0.15);
+            color: var(--warning);
+        }
+        
+        .low-risk {
+            background-color: rgba(19, 136, 8, 0.15);
+            color: var(--primary);
+        }
+        
+        .user-profile {
+            text-align: center;
+            padding: 20px;
+            color: #e2e8f0;
+        }
+        
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+            border: 4px solid var(--primary);
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--secondary);
+            margin-bottom: 15px;
+        }
+        
+        .feature-card {
+            text-align: center;
+            padding: 25px 15px;
+            height: 100%;
+        }
+        
+        .control-panel {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        /* Flag next to title */
+        .flag-icon {
+            font-size: 2.4rem;
+            margin-right: 10px;
+            vertical-align: -4px;
+        }
+        
+        .drone-status {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .sensor-data {
+            background-color: #111827;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--secondary);
+        }
+        
+        .glowing-btn {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+        
+        .modal-content {
+            border-radius: 12px;
+            border: 1px solid #1f2937;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            background-color: #23572d;
+            border-color: #23572d;
+        }
+        
+        .section-title {
+            font-weight: 700;
+            color: var(--secondary);
+            margin: 30px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1f2937;
+        }
+        
+        /* Drone animation */
+        .drone-marker {
+            animation: droneFloat 2s infinite ease-in-out;
+        }
+        
+        @keyframes droneFloat {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        /* Drone camera feed */
+        .drone-feed-container {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .drone-feed {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            transition: all 0.3s ease;
+        }
+        
+        .drone-feed-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        /* Photo gallery */
+        .photo-gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .photo-gallery::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .photo-gallery::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .photo-gallery::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+        
+        .photo-gallery::-webkit-scrollbar-thumb:hover {
+            background: #23572d;
+        }
+        
+        .gallery-item {
+            border-radius: 8px;
+            overflow: hidden;
+            height: 100px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        .gallery-item:hover {
+            transform: scale(1.05);
+        }
+        
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Drone deployment panel */
+        .deployment-panel {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        /* Live tracking panel */
+        .live-tracking {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        /* Notification system */
+        .notification-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+        }
+
+        /* New styles for enhanced UI */
+        .gradient-bg {
+            background: linear-gradient(135deg, #2a6b38 0%, #3a8c4c 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .live-feed-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .live-feed-header {
+            background: rgba(42, 107, 56, 0.9);
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .live-feed-content {
+            height: 300px;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .drone-controls {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .control-stick {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .control-stick:before {
+            content: '';
+            width: 30px;
+            height: 30px;
+            background: var(--accent);
+            border-radius: 50%;
+            position: absolute;
+        }
+        
+        .pulse-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--accent);
+            border-radius: 50%;
+            position: absolute;
+            animation: pulseDot 1.5s infinite;
+        }
+        
+        @keyframes pulseDot {
+            0% { transform: scale(1); opacity: 1; }
+            70% { transform: scale(3); opacity: 0; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+        
+        .enhanced-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .enhanced-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+        
+        .dashboard-widget {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            height: 100%;
+        }
+        
+        /* New styles for professional drone interface */
+        .drone-feed-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 10;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .drone-feed-controls .btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        
+        .capture-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .capture-indicator.active {
+            opacity: 1;
+        }
+        
+        .capture-indicator i {
+            font-size: 3rem;
+            color: var(--primary);
+        }
+        
+        .video-recording {
+            animation: recordingPulse 1s infinite;
+        }
+        
+        @keyframes recordingPulse {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+        
+        .telemetry-data {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+        }
+        
+        /* Video panning effects */
+        .video-pan-left {
+            transform: translateX(-20px);
+            transition: transform 0.3s ease;
+        }
+        
+        .video-pan-right {
+            transform: translateX(20px);
+            transition: transform 0.3s ease;
+        }
+        
+        .video-pan-reset {
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        /* Video zoom effects */
+        .video-zoom-in {
+            transform: scale(1.3);
+            transition: transform 0.8s ease;
+        }
+        
+        .video-zoom-out {
+            transform: scale(0.7);
+            transition: transform 0.8s ease;
+        }
+        
+        .video-ascend {
+            transform: scale(1.1);
+            transition: transform 0.5s ease;
+        }
+        
+        .video-descend {
+            transform: scale(0.9);
+            transition: transform 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <span class="flag-icon" role="img" aria-label="India flag">🇮🇳</span>
+                SafeTour
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Map</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Alerts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Tourists</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Analytics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Settings</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container dashboard-container mt-4">
+        <!-- User and Control Station Toggle -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0">Smart Tourist Safety Monitoring System</h3>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary active" id="userViewBtn">User View</button>
+                                <button type="button" class="btn btn-outline-primary" id="controlViewBtn">Control Station</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User View -->
+        <div id="userView">
+            <div class="row">
+                <!-- Left Sidebar - User Profile -->
+                <div class="col-lg-3">
+                    <div class="card">
+                        <div class="user-profile">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjUwIiBmaWxsPSIjRThFQUVEIi8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzciIHI9IjE4IiBmaWxsPSIjQkRCREJEIi8+CjxwYXRoIGQ9Ik01MCA2MkM2NC4zNTg5IDYyIDc2IDU3LjU0MjkgNzYgNTJDNzYgNDYuNDU3MSA2NC4zNTg5IDQyIDUwIDQyQzM1LjY0MTEgNDIgMjQgNDYuNDU3MSAyNCA1MkMyNCA1Ny41NDI5IDM1LjY0MTEgNjIgNTAgNjJaIiBmaWxsPSIjQkRCREJEIi8+Cjwvc3ZnPgo=" alt="Profile" class="profile-img">
+                            <h4>Rajesh Kumar</h4>
+                            <p class="text-muted">Tourist ID: IND-7B3A9C2D</p>
+                            <div class="d-flex justify-content-center mb-3">
+                                <span class="risk-badge low-risk me-2">Safety Score: 85/100</span>
+                                <span class="risk-badge low-risk">Active</span>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <h5>5</h5>
+                                    <small>Days in India</small>
+                                </div>
+                                <div class="col-4">
+                                    <h5>3</h5>
+                                    <small>Cities Visited</small>
+                                </div>
+                                <div class="col-4">
+                                    <h5>42</h5>
+                                    <small>Points Visited</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Emergency Contacts</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-shrink-0">
+                                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFOEVBRUQiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNSIgcj0iNyIgZmlsbD0iI0JEQkRCRCIvPgo8cGF0aCBkPSJNMjAgMzRDMjcuNzMxIDM0IDM0IDMwLjQxODMgMzQgMjZDMzQgMjEuNTgxNyAyNy43MzEgMTggMjAgMThDMTIuMjY5IDE4IDYgMjEuNTgxNyA2IDI2QzYgMzAuNDE4MyAxMi4yNjkgMzQgMjAgMzRaIiBmaWxsPSIjQkRCREJEIi8+Cjwvc3ZnPgo=" alt="Contact" width="40" height="40" class="rounded-circle">
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Local Police</h6>
+                                    <small class="text-muted">+91 9876543210</small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-shrink-0">
+                                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnS9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFOEVBRUQiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNSIgcj0iNyIgZmlsbD0iI0JEQkRCRCIvPgo8cGF0aCBkPSJNMjAgMzRDMjcuNzMxIDM0IDM0IDMwLjQxODMgMzQgMjZDMzQgMjEuNTgxNyAyNy43MzEgMTggMjAgMThDMTIuMjY5IDE4IDYgMjEuNTgxNyA2IDI2QzYgMzAuNDE4MyAxMi4yNjkgMzQgMjAgMzRaIiBmaWxs=" alt="Contact" width="40" height="40" class="rounded-circle">
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Tourism Department</h6>
+                                    <small class="text-muted">+91 9123456780</small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw=" alt="Contact" width="40" height="40" class="rounded-circle">
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Emergency Contact</h6>
+                                    <small class="text-muted">+1 2345678901</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Current Itinerary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <h6 class="mb-0">Day 5: Kaziranga National Park</h6>
+                                <small class="text-muted">Today, 8:00 AM - 6:00 PM</small>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="mb-0">Day 6: Majuli Island</h6>
+                                <small class="text-muted">Tomorrow, 7:00 AM - 5:00 PM</small>
+                            </div>
+                            <div class="">
+                                <h6 class="mb-0">Day 7: Return to Guwahati</h6>
+                                <small class="text-muted">April 12, 10:00 AM</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="col-lg-9">
+                    <!-- Stats Row -->
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="stat-number">42</div>
+                                    <div class="stat-label">Points Visited</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="stat-number">85%</div>
+                                    <div class="stat-label">Safety Score</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="stat-number">2</div>
+                                    <div class="stat-label">Geo-fence Alerts</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map Section -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Live Location & Geo-fencing</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="userMap" class="map-container"></div>
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <span class="alert-indicator alert-low"></span> Safe Zone
+                                        <span class="alert-indicator alert-medium ms-3"></span> Moderate Risk
+                                        <span class="alert-indicator alert-high ms-3"></span> High Risk
+                                    </div>
+                                    <button class="btn btn-outline-primary btn-sm">View Full Map</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Features Row -->
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="card feature-card">
+                                <div class="card-body">
+                                    <div class="feature-icon">🚨</div>
+                                    <h5>Panic Button</h5>
+                                    <p>Immediately alert authorities with your location in case of emergency</p>
+                                    <button class="btn btn-danger glowing-btn">Activate Emergency</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card feature-card">
+                                <div class="card-body">
+                                    <div class="feature-icon">📋</div>
+                                    <h5>Digital ID</h5>
+                                    <p>Blockchain-verified digital identity with all your travel documents</p>
+                                    <button class="btn btn-primary">View Digital ID</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card feature-card">
+                                <div class="card-body">
+                                    <div class="feature-icon">🌐</div>
+                                    <h5>Multi-language</h5>
+                                    <p>Access the app in your preferred language for better experience</p>
+                                    <select class="form-select">
+                                        <option>English</option>
+                                        <option>Hindi</option>
+                                        <option>Assamese</option>
+                                        <option>Bengali</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alerts Section -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Recent Safety Alerts</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6>Weather Advisory</h6>
+                                        <p class="mb-0">Heavy rainfall expected in your area within next 3 hours</p>
+                                    </div>
+                                    <small>2 hours ago</small>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6>Geo-fence Alert</h6>
+                                        <p class="mb-0">You're approaching a restricted area. Please return to designated tourist zones.</p>
+                                    </div>
+                                    <small>1 day ago</small>
+                                </div>
+                            </div>
+                            <div class="alert alert-success">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6>Safety Update</h6>
+                                        <p class="mb-0">Local authorities have increased patrols in your current area</p>
+                                    </div>
+                                    <small>2 days ago</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Station View (Initially Hidden) -->
+        <div id="controlView" style="display: none;">
+            <div class="row">
+                <!-- Left Sidebar - Controls -->
+                <div class="col-lg-3">
+                    <div class="control-panel">
+                        <h4 class="mb-4">Control Station</h4>
+                        
+                        <div class="drone-status">
+                            <h6>Drone Fleet Status</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Active Drones</span>
+                                <span class="fw-bold" id="activeDrones">12/15</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Battery Average</span>
+                                <span class="fw-bold">78%</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Coverage Area</span>
+                                <span class="fw-bold">85 km²</span>
+                            </div>
+                        </div>
+                        
+                        <div class="sensor-data">
+                            <h6>NISAR Satellite Data</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Last Update</span>
+                                <span class="fw-bold">12 min ago</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Terrain Changes</span>
+                                <span class="fw-bold">3 detected</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Weather Patterns</span>
+                                <span class="fw-bold">Stable</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h6>Quick Actions</h6>
+                            <button class="btn btn-light w-100 mb-2" data-bs-toggle="modal" data-bs-target="#deployDroneModal">Deploy Drone</button>
+                            <button class="btn btn-light w-100 mb-2" data-bs-toggle="modal" data-bs-target="#broadcastAlertModal">Send Broadcast Alert</button>
+                            <button class="btn btn-light w-100" data-bs-toggle="modal" data-bs-target="#emergencyProtocolsModal">View Emergency Protocols</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Active Incidents</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3 p-2 alert alert-danger">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-0">Missing Tourist</h6>
+                                    <span class="badge bg-danger">High</span>
+                                </div>
+                                <small>Last seen near Kaziranga NP</small>
+                            </div>
+                            <div class="mb-3 p-2 alert alert-warning">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-0">Weather Alert</h6>
+                                    <span class="badge bg-warning">Medium</span>
+                                </div>
+                                <small>Heavy rain in Guwahati</small>
+                            </div>
+                            <div class="p-2 alert alert-info">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-0">Geo-fence Breach</h6>
+                                    <span class="badge bg-info">Low</span>
+                                </div>
+                                <small>Group near restricted area</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Drone Camera Feeds -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Live Drone Feeds</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="drone-feed-container">
+                                <video class="drone-feed" id="droneFeed1" autoplay muted loop playsinline>
+                                    <source src="vid1.mp4" type="video/mp4">
+                                    <source src="vid2.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                                <div class="capture-indicator" id="captureIndicator1">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                                <div class="telemetry-data">
+                                    DRONE-247 | ALT: 120m | SPD: 42km/h | BAT: 82%
+                                </div>
+                                <div class="drone-feed-overlay">
+                                    <div class="d-flex justify-content-between">
+                                        <span>DRONE-247 | Battery: 82%</span>
+                                        <span><i class="fas fa-video me-1"></i> Live</span>
+                                    </div>
+                                </div>
+                                <div class="drone-feed-controls">
+                                    <button class="btn btn-danger btn-sm" onclick="capturePhoto('droneFeed1', 'captureIndicator1')">
+                                        <i class="fas fa-camera"></i>
+                                    </button>
+                                    <button class="btn btn-primary btn-sm" onclick="toggleRecording(this, 'droneFeed1')">
+                                        <i class="fas fa-video"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Main Control Content -->
+                <div class="col-lg-9">
+                    <!-- Stats Row -->
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="stat-number">1,243</div>
+                                    <div class="stat-label">Active Tourists</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="stat-number">17</div>
+                                    <div class="stat-label">Active Incidents</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="stat-number">94%</div>
+                                    <div class="stat-label">Avg. Safety Score</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="stat-number">42</div>
+                                    <div class="stat-label">Geo-fence Alerts</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Map -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Regional Monitoring Dashboard</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="controlMap" class="map-container"></div>
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <span class="alert-indicator alert-low"></span> Low Risk
+                                        <span class="alert-indicator alert-medium ms-3"></span> Moderate Risk
+                                        <span class="alert-indicator alert-high ms-3"></span> High Risk
+                                        <span class="ms-3"><i class="fas fa-drone"></i> Drone</span>
+                                        <span class="ms-3"><i class="fas fa-user"></i> Tourist</span>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-outline-primary btn-sm" id="toggleSatelliteView">Satellite View</button>
+                                        <button class="btn btn-outline-primary btn-sm ms-2" id="toggleWeatherOverlay">Weather Overlay</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Enhanced Drone Live Feed Section -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Live Drone Feed & Controls</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="live-feed-container">
+                                <div class="live-feed-header">
+                                    <div>
+                                        <i class="fas fa-drone me-2"></i>
+                                        <span id="liveDroneId">DRONE-247</span>
+                                        <span class="badge bg-success ms-2" id="liveDroneStatus">LIVE</span>
+                                    </div>
+                                    <div>
+                                        <span class="me-3">Battery: <span id="liveDroneBattery">82%</span></span>
+                                        <span>Signal: <span id="liveDroneSignal">Strong</span></span>
+                                    </div>
+                                </div>
+                                <div class="live-feed-content">
+                                    <div id="liveFeedPlaceholder">
+                                        <i class="fas fa-satellite-dish fa-3x text-light opacity-50"></i>
+                                        <p class="mt-2 text-light">Select a drone to view live feed</p>
+                                    </div>
+                                    <video id="liveDroneFeed" style="display: none; width: 100%; height: 100%; object-fit: cover;" autoplay muted></video>
+                                    <div class="capture-indicator" id="liveCaptureIndicator">
+                                        <i class="fas fa-camera"></i>
+                                    </div>
+                                    <div class="telemetry-data" id="liveTelemetryData">
+                                        ALT: 120m | SPD: 42km/h | DIST: 3.2km | BAT: 82%
+                                    </div>
+                                    <div class="drone-feed-controls">
+                                        <button class="btn btn-danger btn-sm" onclick="capturePhoto('liveDroneFeed', 'liveCaptureIndicator')">
+                                            <i class="fas fa-camera"></i>
+                                        </button>
+                                        <button class="btn btn-primary btn-sm" onclick="toggleRecording(this, 'liveDroneFeed')">
+                                            <i class="fas fa-video"></i>
+                                        </button>
+                                        <button class="btn btn-info btn-sm" onclick="switchCameraView()">
+                                            <i class="fas fa-sync"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <h6>Drone Controls</h6>
+                                    <div class="drone-controls">
+                                        <div class="row text-center mb-3">
+                                            <div class="col-4">
+                                                <button class="btn btn-outline-primary btn-sm w-100" onclick="controlDrone('up')">
+                                                    <i class="fas fa-arrow-up"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-4">
+                                                <button class="btn btn-outline-primary btn-sm w-100" onclick="controlDrone('photo')">
+                                                    <i class="fas fa-camera"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-4">
+                                                <button class="btn btn-outline-primary btn-sm w-100" onclick="controlDrone('zoom_in')">
+                                                    <i class="fas fa-search-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="row text-center mb-3">
+                                            <div class="col-4">
+                                                <button class="btn btn-outline-primary btn-sm w-100" onclick="controlDrone('left')">
+                                                    <i class="fas fa-arrow-left"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="pulse-dot"></div>
+                                                <button class="btn btn-danger btn-sm w-100" onclick="controlDrone('emergency')">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-4">
+                                                <button class="btn btn-outline-primary btn-sm w-100" onclick="controlDrone('right')">
+                                                    <i class="fas fa-arrow-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="row text-center">
+                                            <div class="col-4">
+                                                <button class="btn btn-outline-primary btn-sm w-100" onclick="controlDrone('down')">
+                                                    <i class="fas fa-arrow-down"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-4">
+                                                <button class="btn btn-outline-primary btn-sm w-100" onclick="controlDrone('video')">
+                                                    <i class="fas fa-video"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-4">
+                                                <button class="btn btn-outline-primary btn-sm w-100" onclick="controlDrone('zoom_out')">
+                                                    <i class="fas fa-search-minus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Main View Row -->
+                                        <div class="row text-center mt-2">
+                                            <div class="col-12">
+                                                <button class="btn btn-outline-info btn-sm w-100" onclick="switchToMainView()">
+                                                    <i class="fas fa-home me-1"></i> Main View
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Test Drone Controls Row -->
+                                        <div class="row text-center mt-2">
+                                            <div class="col-12">
+                                                <button class="btn btn-outline-warning btn-sm w-100" onclick="testDroneControls()">
+                                                    <i class="fas fa-bug me-1"></i> Test Controls
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Drone Telemetry</h6>
+                                    <div class="dashboard-widget">
+                                        <div class="row mb-3">
+                                            <div class="col-6">
+                                                <small class="text-muted">Altitude</small>
+                                                <h5 id="droneAltitude">120 m</h5>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Speed</small>
+                                                <h5 id="droneSpeed">42 km/h</h5>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-6">
+                                                <small class="text-muted">Distance</small>
+                                                <h5 id="droneDistance">3.2 km</h5>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Signal Strength</small>
+                                                <h5 id="droneSignal">98%</h5>
+                                            </div>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 8px;">
+                                            <div class="progress-bar" role="progressbar" style="width: 82%;" aria-valuenow="82" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <small class="text-muted">Battery: 82%</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts and Data -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Tourist Distribution</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="touristChart" height="250"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Incident Types</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="incidentChart" height="250"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Drone Deployment Panel -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Drone Deployment Console</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="deployment-panel">
+                                        <h6>Select Tourist for Drone Deployment</h6>
+                                        <select class="form-select mb-3" id="touristSelect">
+                                            <option value="">Select a tourist...</option>
+                                            <option value="rajesh">Rajesh Kumar (Kaziranga NP)</option>
+                                            <option value="sarah">Sarah Johnson (Guwahati)</option>
+                                            <option value="michael">Michael Chen (Shillong)</option>
+                                            <option value="emma">Emma Wilson (Majuli Island)</option>
+                                        </select>
+                                        
+                                        <h6 class="mt-3">Select Drone</h6>
+                                        <select class="form-select mb-3" id="droneSelect">
+                                            <option value="">Select a drone...</option>
+                                            <option value="drone-247">DRONE-247 (82% Battery)</option>
+                                            <option value="drone-312">DRONE-312 (78% Battery)</option>
+                                            <option value="drone-589">DRONE-589 (91% Battery)</option>
+                                        </select>
+                                        
+                                        <button class="btn btn-primary w-100" onclick="deployDrone()">
+                                            <i class="fas fa-paper-plane me-1"></i> Deploy Drone
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="live-tracking">
+                                        <h6>Drone Deployment Status</h6>
+                                        <div id="deploymentStatus" class="text-center py-4">
+                                            <i class="fas fa-drone fa-3x mb-3 text-muted"></i>
+                                            <p class="text-muted">No active deployments</p>
+                                        </div>
+                                        
+                                        <h6 class="mt-3">Captured Media</h6>
+                                        <div class="photo-gallery" id="photoGallery">
+                                            <!-- Gallery starts empty - will be populated with actual captured photos -->
+                                            <!-- Maximum 6 visible items, scrollable for more -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Alerts -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Recent Alerts & Notifications</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Tourist</th>
+                                            <th>Type</th>
+                                            <th>Location</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>10:23 AM</td>
+                                            <td>Rajesh Kumar</td>
+                                            <td><span class="badge bg-warning">Geo-fence</span></td>
+                                            <td>Kaziranga NP</td>
+                                            <td><span class="badge bg-success">Resolved</span></td>
+                                            <td><button class="btn btn-sm btn-outline-primary">View</button></td>
+                                        </tr>
+                                        <tr>
+                                            <td>09:45 AM</td>
+                                            <td>Sarah Johnson</td>
+                                            <td><span class="badge bg-danger">Panic</span></td>
+                                            <td>Guwahati</td>
+                                            <td><span class="badge bg-warning">In Progress</span></td>
+                                            <td><button class="btn btn-sm btn-outline-primary">View</button></td>
+                                        </tr>
+                                        <tr>
+                                            <td>09:12 AM</td>
+                                            <td>Michael Chen</td>
+                                            <td><span class="badge bg-info">Inactivity</span></td>
+                                            <td>Shillong</td>
+                                            <td><span class="badge bg-secondary">Monitoring</span></td>
+                                            <td><button class="btn btn-sm btn-outline-primary">View</button></td>
+                                        </tr>
+                                        <tr>
+                                            <td>08:30 AM</td>
+                                            <td>Group Alert</td>
+                                            <td><span class="badge bg-warning">Weather</span></td>
+                                            <td>Assam Region</td>
+                                            <td><span class="badge bg-success">Resolved</span></td>
+                                            <td><button class="btn btn-sm btn-outline-primary">View</button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="deployDroneModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Deploy Drone</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Select a drone to deploy to the tourist's location for visual assessment and support.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Select Tourist</label>
+                        <select class="form-select">
+                            <option>Rajesh Kumar (Kaziranga NP)</option>
+                            <option>Sarah Johnson (Guwahati)</option>
+                            <option>Michael Chen (Shillong)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select Drone</label>
+                        <select class="form-select">
+                            <option>DRONE-247 (82% Battery)</option>
+                            <option>DRONE-312 (78% Battery)</option>
+                            <option>DRONE-589 (91% Battery)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mission Objective</label>
+                        <select class="form-select">
+                            <option>Visual Assessment</option>
+                            <option>Emergency Support</option>
+                            <option>Geo-fence Verification</option>
+                            <option>Route Guidance</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="deployDrone()">Deploy Drone</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="broadcastAlertModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Send Broadcast Alert</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Alert Level</label>
+                        <select class="form-select">
+                            <option>Information</option>
+                            <option>Warning</option>
+                            <option>Danger</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Target Area</label>
+                        <select class="form-select">
+                            <option>All Tourists</option>
+                            <option>Kaziranga Region</option>
+                            <option>Guwahati Region</option>
+                            <option>Shillong Region</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" rows="3" placeholder="Enter alert message..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Send Alert</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="emergencyProtocolsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Emergency Protocols</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <h6>Missing Tourist Protocol</h6>
+                        <ol>
+                            <li>Verify last known location and time</li>
+                            <li>Deploy nearest drone for visual assessment</li>
+                            <li>Alert local authorities and park rangers</li>
+                            <li>Initiate search pattern based on itinerary</li>
+                            <li>Notify emergency contacts</li>
+                        </ol>
+                    </div>
+                    <div class="mb-4">
+                        <h6>Medical Emergency Protocol</h6>
+                        <ol>
+                            <li>Dispatch medical drone with first aid supplies</li>
+                            <li>Alert nearest medical facilities</li>
+                            <li>Provide guidance to tourists for immediate care</li>
+                            <li>Coordinate evacuation if necessary</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h6>Natural Disaster Protocol</h6>
+                        <ol>
+                            <li>Issue immediate evacuation alerts</li>
+                            <li>Identify safe zones and evacuation routes</li>
+                            <li>Deploy drones to assess safest paths</li>
+                            <li>Coordinate with local disaster management</li>
+                            <li>Initiate headcount and status checks</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast notification-toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+        <div class="toast-header">
+            <i class="fas fa-drone me-2 text-primary"></i>
+            <strong class="me-auto">Drone Deployment</strong>
+            <small>just now</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+            Drone deployment initiated.
+        </div>
+    </div>
+
+
+    
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Global variables
+        let userMap, controlMap;
+        let satelliteView = false;
+        let weatherOverlay = false;
+        let activeDrones = 12;
+        let deployedDrones = [];
+        let photoCount = 0;
+        let liveDroneInterval;
+        let currentVideoIndex = 0;
+        let isRecording = false;
+        
+        // Drone video feeds with people
+        
+        
+        // Drone photos with people
+        const dronePhotos = [
+            "https://images.unsplash.com/photo-1526139334526-f591a54b477c?w=400&h=300&fit=crop",
+            "https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&h=300&fit=crop",
+            "https://images.unsplash.com/photo-1501555088652-021faa106b9b?w=400&h=300&fit=crop",
+            "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
+            "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop",
+            "https://images.unsplash.com/photo-1571019614244-c5b476e4c2f1?w=400&h=300&fit=crop"
+        ];
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initUserMap();
+            initCharts();
+            
+            // Set up event listeners
+            document.getElementById('userViewBtn').addEventListener('click', toggleUserView);
+            document.getElementById('controlViewBtn').addEventListener('click', toggleControlView);
+            document.getElementById('toggleSatelliteView').addEventListener('click', toggleSatelliteView);
+            document.getElementById('toggleWeatherOverlay').addEventListener('click', toggleWeatherOverlay);
+            
+            // Initialize toast notifications
+            const toastEl = document.querySelector('.toast');
+            const toast = new bootstrap.Toast(toastEl);
+            
+            // Preload drone videos
+            preloadDroneVideos();
+            
+            // Initialize photo gallery with sample photos
+            initPhotoGallery();
+            
+            // Initialize left sidebar drone feed
+            initLeftSidebarDroneFeed();
+            
+            // Test drone controls are working
+            console.log('Testing drone controls...');
+            setTimeout(() => {
+                console.log('Testing up button...');
+                controlDrone('up');
+            }, 1000);
+            
+            // Auto-deploy a demo drone when page loads (for testing)
+            setTimeout(() => {
+                if (document.getElementById('controlView').style.display !== 'none') {
+                    // If control view is visible, auto-deploy a demo drone
+                    document.getElementById('touristSelect').value = 'rajesh';
+                    document.getElementById('droneSelect').value = 'drone-247';
+                    deployDrone();
+                }
+            }, 2000);
+        });
+
+        // Preload drone videos for smoother switching
+        function preloadDroneVideos() {
+            droneVideos.forEach(videoUrl => {
+                const video = document.createElement('video');
+                video.src = videoUrl;
+            });
+        }
+        
+        // Initialize photo gallery (empty, will be populated with captured photos)
+        function initPhotoGallery() {
+            const gallery = document.getElementById('photoGallery');
+            // Gallery starts empty, will be populated with actual captured photos
+            gallery.innerHTML = '';
+        }
+        
+        // Initialize left sidebar drone feed
+        function initLeftSidebarDroneFeed() {
+            const leftSidebarVideo = document.getElementById('droneFeed1');
+            
+            // Ensure video plays
+            leftSidebarVideo.addEventListener('loadeddata', function() {
+                leftSidebarVideo.play().catch(function(error) {
+                    console.log("Left sidebar video play failed:", error);
+                });
+            });
+            
+            // Handle video errors
+            leftSidebarVideo.addEventListener('error', function() {
+                console.log("Left sidebar video error:", leftSidebarVideo.error);
+                // Fallback to a different video source if needed
+                leftSidebarVideo.src = "https://assets.mixkit.co/videos/preview/mixkit-tourists-walking-on-a-mountain-path-41518-large.mp4";
+            });
+            
+            // Try to play immediately
+            leftSidebarVideo.play().catch(function(error) {
+                console.log("Immediate play failed, will retry on load:", error);
+            });
+        }
+
+        // Toggle between User and Control views
+        function toggleUserView() {
+            document.getElementById('userView').style.display = 'block';
+            document.getElementById('controlView').style.display = 'none';
+            this.classList.add('active');
+            document.getElementById('controlViewBtn').classList.remove('active');
+        }
+        
+        function toggleControlView() {
+            document.getElementById('userView').style.display = 'none';
+            document.getElementById('controlView').style.display = 'block';
+            this.classList.add('active');
+            document.getElementById('userViewBtn').classList.remove('active');
+            
+            // Initialize control map when switching to control view
+            if (!controlMap) {
+                initControlMap();
+            }
+        }
+        
+        // Initialize maps
+        function initUserMap() {
+            userMap = L.map('userMap').setView([26.5725, 93.3425], 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(userMap);
+            
+            // Add user location
+            L.marker([26.5725, 93.3425])
+                .addTo(userMap)
+                .bindPopup('Your current location')
+                .openPopup();
+            
+            // Add sample safe zones
+            const safeZone = L.circle([26.5725, 93.3425], {
+                color: 'green',
+                fillColor: '#28a745',
+                fillOpacity: 0.2,
+                radius: 2000
+            }).addTo(userMap).bindPopup('Safe Zone');
+            
+            // Add sample restricted zone
+            const restrictedZone = L.circle([26.60, 93.38], {
+                color: 'red',
+                fillColor: '#dc3545',
+                fillOpacity: 0.2,
+                radius: 1500
+            }).addTo(userMap).bindPopup('Restricted Area');
+            
+            // Add sample moderate risk zone
+            const moderateZone = L.circle([26.54, 93.30], {
+                color: 'orange',
+                fillColor: '#ffc107',
+                fillOpacity: 0.2,
+                radius: 1800
+            }).addTo(userMap).bindPopup('Moderate Risk Area');
+        }
+        
+        function initControlMap() {
+            controlMap = L.map('controlMap').setView([26.5725, 93.3425], 9);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(controlMap);
+            
+            // Add sample tourists
+            const touristLocations = [
+                {lat: 26.5725, lng: 93.3425, name: 'Rajesh Kumar', risk: 'low'},
+                {lat: 26.62, lng: 93.25, name: 'Sarah Johnson', risk: 'medium'},
+                {lat: 26.52, lng: 93.40, name: 'Michael Chen', risk: 'high'},
+                {lat: 26.58, lng: 93.30, name: 'Emma Wilson', risk: 'low'},
+                {lat: 26.55, lng: 93.35, name: 'David Brown', risk: 'low'},
+            ];
+            
+            touristLocations.forEach(tourist => {
+                const color = tourist.risk === 'high' ? 'red' : (tourist.risk === 'medium' ? 'orange' : 'green');
+                
+                L.marker([tourist.lat, tourist.lng], {
+                    icon: L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
+                        iconSize: [15, 15],
+                        iconAnchor: [7, 7]
+                    })
+                })
+                .addTo(controlMap)
+                .bindPopup(`
+                    <b>${tourist.name}</b><br>
+                    Status: ${tourist.risk === 'high' ? 'High Risk' : (tourist.risk === 'medium' ? 'Medium Risk' : 'Low Risk')}<br>
+                    <button class="btn btn-sm btn-primary mt-1" onclick="deployDroneToTourist('${tourist.name}', ${tourist.lat}, ${tourist.lng})">Deploy Drone</button>
+                `);
+            });
+            
+            // Add sample drones
+            const droneLocations = [
+                {lat: 26.60, lng: 93.32, status: 'active', id: 'DRONE-247'},
+                {lat: 26.50, lng: 93.38, status: 'active', id: 'DRONE-312'},
+                {lat: 26.54, lng: 93.25, status: 'active', id: 'DRONE-589'},
+            ];
+            
+            droneLocations.forEach(drone => {
+                L.marker([drone.lat, drone.lng], {
+                    icon: L.divIcon({
+                        className: 'custom-div-icon drone-marker',
+                        html: `<div style="background-color: blue; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center;">
+                                <i class="fas fa-drone" style="color: white; font-size: 10px;"></i>
+                              </div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    })
+                })
+                .addTo(controlMap)
+                .bindPopup(`
+                    <b>${drone.id}</b><br>
+                    Status: ${drone.status}<br>
+                    Battery: ${drone.id === 'DRONE-247' ? '82%' : (drone.id === 'DRONE-312' ? '78%' : '91%')}
+                `);
+            });
+            
+            // Add risk zones
+            const highRiskZone = L.circle([26.52, 93.40], {
+                color: 'red',
+                fillColor: '#dc3545',
+                fillOpacity: 0.2,
+                radius: 5000
+            }).addTo(controlMap).bindPopup('High Risk Zone');
+            
+            const mediumRiskZone = L.circle([26.62, 93.25], {
+                color: 'orange',
+                fillColor: '#ffc107',
+                fillOpacity: 0.2,
+                radius: 4000
+            }).addTo(controlMap).bindPopup('Medium Risk Zone');
+        }
+        
+        // Toggle satellite view
+        function toggleSatelliteView() {
+            satelliteView = !satelliteView;
+            
+            if (satelliteView) {
+                controlMap.eachLayer(function(layer) {
+                    if (layer instanceof L.TileLayer) {
+                        controlMap.removeLayer(layer);
+                    }
+                });
+                
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                }).addTo(controlMap);
+                
+                this.textContent = 'Standard View';
+            } else {
+                controlMap.eachLayer(function(layer) {
+                    if (layer instanceof L.TileLayer) {
+                        controlMap.removeLayer(layer);
+                    }
+                });
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(controlMap);
+                
+                this.textContent = 'Satellite View';
+            }
+        }
+        
+        // Toggle weather overlay
+        function toggleWeatherOverlay() {
+            // This would typically connect to a weather API
+            weatherOverlay = !weatherOverlay;
+            
+            if (weatherOverlay) {
+                showNotification('Weather overlay activated', 'info');
+                this.textContent = 'Hide Weather';
+            } else {
+                showNotification('Weather overlay deactivated', 'info');
+                this.textContent = 'Weather Overlay';
+            }
+        }
+        
+        // Initialize charts
+        function initCharts() {
+            // Tourist distribution chart
+            const touristCtx = document.getElementById('touristChart').getContext('2d');
+            new Chart(touristCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Kaziranga', 'Guwahati', 'Shillong', 'Majuli', 'Dibrugarh'],
+                    datasets: [{
+                        label: 'Tourist Count',
+                        data: [342, 567, 278, 154, 98],
+                        backgroundColor: [
+                            'rgba(42, 107, 56, 0.7)',
+                            'rgba(76, 149, 108, 0.7)',
+                            'rgba(214, 140, 69, 0.7)',
+                            'rgba(231, 76, 60, 0.7)',
+                            'rgba(108, 117, 125, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(42, 107, 56)',
+                            'rgb(76, 149, 108)',
+                            'rgb(214, 140, 69)',
+                            'rgb(231, 76, 60)',
+                            'rgb(108, 117, 125)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Incident type chart
+            const incidentCtx = document.getElementById('incidentChart').getContext('2d');
+            new Chart(incidentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Geo-fence Breach', 'Panic Button', 'Inactivity', 'Weather Alert', 'Health Emergency'],
+                    datasets: [{
+                        data: [45, 12, 28, 10, 5],
+                        backgroundColor: [
+                            'rgba(243, 156, 18, 0.7)',
+                            'rgba(231, 76, 60, 0.7)',
+                            'rgba(108, 117, 125, 0.7)',
+                            'rgba(76, 149, 108, 0.7)',
+                            'rgba(42, 107, 56, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(243, 156, 18)',
+                            'rgb(231, 76, 60)',
+                            'rgb(108, 117, 125)',
+                            'rgb(76, 149, 108)',
+                            'rgb(42, 107, 56)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Drone deployment function
+        function deployDrone() {
+            const touristSelect = document.getElementById('touristSelect');
+            const droneSelect = document.getElementById('droneSelect');
+            
+            if (!touristSelect.value || !droneSelect.value) {
+                showNotification('Please select both a tourist and a drone for deployment.', 'warning');
+                return;
+            }
+            
+            const touristName = touristSelect.options[touristSelect.selectedIndex].text;
+            const droneId = droneSelect.options[droneSelect.selectedIndex].text;
+            
+            // Update deployment status
+            document.getElementById('deploymentStatus').innerHTML = `
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h6>Deploying ${droneId} to ${touristName}</h6>
+                <p>ETA: <span id="deploymentETA">10</span> seconds</p>
+            `;
+            
+            // Start countdown
+            let eta = 10;
+            const countdown = setInterval(() => {
+                eta--;
+                document.getElementById('deploymentETA').textContent = eta;
+                
+                if (eta <= 0) {
+                    clearInterval(countdown);
+                    document.getElementById('deploymentStatus').innerHTML = `
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h6>Deployment Complete</h6>
+                        <p>${droneId} has reached ${touristName}</p>
+                        <button class="btn btn-sm btn-primary" onclick="activateLiveFeed('${droneId}')">
+                            <i class="fas fa-video me-1"></i> View Live Feed
+                        </button>
+                    `;
+                    
+                    // Add to deployed drones array
+                    deployedDrones.push({
+                        id: droneId,
+                        tourist: touristName,
+                        status: 'deployed'
+                    });
+                    
+                    // Update active drones count
+                    activeDrones--;
+                    document.getElementById('activeDrones').textContent = `${activeDrones}/15`;
+                    
+                    // Automatically activate live feed when deployment is complete
+                    setTimeout(() => {
+                        activateLiveFeed(droneId);
+                    }, 1000);
+                    
+                    showNotification(`${droneId} successfully deployed to ${touristName}`, 'success');
+                }
+            }, 1000);
+            
+            showNotification(`Deploying ${droneId} to ${touristName}...`, 'info');
+        }
+        
+        // Deploy drone to a specific tourist (from map popup)
+        function deployDroneToTourist(touristName, lat, lng) {
+            // In a real implementation, this would find the nearest available drone
+            const droneId = 'DRONE-247';
+            
+            document.getElementById('touristSelect').value = 'rajesh';
+            document.getElementById('droneSelect').value = 'drone-247';
+            
+            deployDrone();
+            
+            // Close the popup
+            controlMap.closePopup();
+        }
+        
+        // Activate live feed for a drone
+        // Drone video feeds with local videos for different views
+        const droneVideos = [
+            "video.mp4",    // Main local video
+            "vid1.mp4",     // Left view video
+            "vid2.mp4",     // Right view video  
+            "vid3.mp4",     // Forward view video
+            "vid4.mp4"      // Backward view video
+        ];
+
+// Activate live feed for a drone
+function activateLiveFeed(droneId) {
+    // Update live feed section
+    document.getElementById('liveDroneId').textContent = droneId;
+    document.getElementById('liveDroneBattery').textContent = '82%';
+    document.getElementById('liveDroneStatus').textContent = 'LIVE';
+    document.getElementById('liveDroneStatus').className = 'badge bg-success ms-2';
+    
+    // Show live feed
+    document.getElementById('liveFeedPlaceholder').style.display = 'none';
+    const liveFeed = document.getElementById('liveDroneFeed');
+    liveFeed.style.display = 'block';
+    
+    // Start with main video (video.mp4)
+    currentVideoIndex = 0;
+    liveFeed.src = droneVideos[currentVideoIndex];
+    
+    // Set video properties for looping
+    liveFeed.loop = true;
+    liveFeed.muted = true;
+    liveFeed.autoplay = true;
+    
+    // Ensure video plays and handle any errors
+    liveFeed.play().catch(function(error) {
+        console.log("Video play failed:", error);
+        showNotification('Video playback started. If video doesn\'t play, check browser autoplay settings.', 'info');
+    });
+
+    // Start updating telemetry data
+    clearInterval(liveDroneInterval);
+    liveDroneInterval = setInterval(updateDroneTelemetry, 2000);
+    
+    showNotification(`Live feed activated for ${droneId}`, 'success');
+}
+
+        
+        // Update drone telemetry data
+        function updateDroneTelemetry(action = null) {
+            let altitude = parseInt(document.getElementById('droneAltitude').textContent) || 120;
+            let speed = parseInt(document.getElementById('droneSpeed').textContent) || 42;
+            let distance = parseFloat(document.getElementById('droneDistance').textContent) || 3.2;
+            let signal = parseInt(document.getElementById('droneSignal').textContent) || 98;
+            
+            // Handle drone movement commands
+            if (action) {
+                switch(action) {
+                    case 'ascend':
+                        altitude += 10;
+                        speed += 2;
+                        showNotification(`Altitude increased to ${altitude}m`, 'success');
+                        break;
+                    case 'descend':
+                        altitude = Math.max(50, altitude - 10);
+                        speed = Math.max(20, speed - 2);
+                        showNotification(`Altitude decreased to ${altitude}m`, 'success');
+                        break;
+                    case 'turn_left':
+                        speed += 1;
+                        showNotification('Drone turning left', 'info');
+                        break;
+                    case 'turn_right':
+                        speed += 1;
+                        showNotification('Drone turning right', 'info');
+                        break;
+                    case 'zoom_in':
+                        showNotification('Camera zooming in', 'info');
+                        break;
+                    case 'zoom_out':
+                        showNotification('Camera zooming out', 'info');
+                        break;
+                }
+            } else {
+                // Normal telemetry update (random variations)
+                altitude += Math.floor(Math.random() * 6) - 3;
+                speed += Math.floor(Math.random() * 4) - 2;
+                distance += (Math.random() * 0.4) - 0.2;
+                signal += Math.floor(Math.random() * 6) - 3;
+                
+                // Keep values within realistic ranges
+                altitude = Math.max(50, Math.min(200, altitude));
+                speed = Math.max(20, Math.min(60, speed));
+                distance = Math.max(1.0, Math.min(5.0, distance));
+                signal = Math.max(90, Math.min(100, signal));
+            }
+            
+            // Update display
+            document.getElementById('droneAltitude').textContent = `${altitude} m`;
+            document.getElementById('droneSpeed').textContent = `${speed} km/h`;
+            document.getElementById('droneDistance').textContent = `${distance.toFixed(1)} km`;
+            document.getElementById('droneSignal').textContent = `${signal}%`;
+            
+            // Update telemetry overlay
+            document.getElementById('liveTelemetryData').textContent = 
+                `ALT: ${altitude}m | SPD: ${speed}km/h | DIST: ${distance.toFixed(1)}km | BAT: 82%`;
+        }
+        
+        // Control drone functions
+        function controlDrone(action) {
+            console.log('Drone control called with action:', action); // Debug log
+            
+            const actions = {
+                'up': 'Ascending',
+                'down': 'Descending',
+                'left': 'Turning left',
+                'right': 'Turning right',
+                'photo': 'Taking photo',
+                'video': 'Recording video',
+                'zoom_in': 'Zooming in',
+                'zoom_out': 'Zooming out',
+                'emergency': 'Emergency protocol activated'
+            };
+            
+            if (actions[action]) {
+                console.log('Executing drone action:', action); // Debug log
+                showNotification(`Drone command: ${actions[action]}`, 'info');
+                
+                // Handle different drone actions
+                switch(action) {
+                    case 'up':
+                        // Drone ascending - increase altitude
+                        console.log('Drone ascending...'); // Debug log
+                        updateDroneTelemetry('ascend');
+                        showNotification('Drone ascending - increasing altitude', 'success');
+                        break;
+                        
+                    case 'down':
+                        // Drone descending - decrease altitude
+                        console.log('Drone descending...'); // Debug log
+                        updateDroneTelemetry('descend');
+                        showNotification('Drone descending - decreasing altitude', 'success');
+                        break;
+                        
+                    case 'left':
+                        // Drone turning left
+                        console.log('Drone turning left...'); // Debug log
+                        updateDroneTelemetry('turn_left');
+                        showNotification('Drone turning left', 'info');
+                        break;
+                        
+                    case 'right':
+                        // Drone turning right
+                        console.log('Drone turning right...'); // Debug log
+                        updateDroneTelemetry('turn_right');
+                        showNotification('Drone turning right', 'info');
+                        break;
+                        
+                    case 'photo':
+                        // Take photo
+                        console.log('Taking photo...'); // Debug log
+                        capturePhoto('liveDroneFeed', 'liveCaptureIndicator');
+                        break;
+                        
+                    case 'video':
+                        // Toggle video recording
+                        console.log('Toggling video recording...'); // Debug log
+                        toggleRecording(document.querySelector('.btn[onclick*="video"]'), 'liveDroneFeed');
+                        break;
+                        
+                    case 'zoom_in':
+                        // Drone camera zooming in
+                        console.log('Zooming in...'); // Debug log
+                        updateDroneTelemetry('zoom_in');
+                        showNotification('Drone camera zooming in', 'info');
+                        break;
+                        
+                    case 'zoom_out':
+                        // Drone camera zooming out
+                        console.log('Zooming out...'); // Debug log
+                        updateDroneTelemetry('zoom_out');
+                        showNotification('Drone camera zooming out', 'info');
+                        break;
+                        
+                    case 'emergency':
+                        // Emergency protocol
+                        console.log('Emergency protocol activated...'); // Debug log
+                        const emergencyModal = new bootstrap.Modal(document.getElementById('emergencyProtocolsModal'));
+                        emergencyModal.show();
+                        break;
+                        
+                    default:
+                        console.log('Unknown action:', action); // Debug log
+                        break;
+                }
+            } else {
+                console.log('Invalid action:', action); // Debug log
+            }
+        }
+        
+        // Capture photo from drone feed
+        function capturePhoto(feedId, indicatorId) {
+            // Show capture indicator
+            const indicator = document.getElementById(indicatorId);
+            indicator.classList.add('active');
+            
+            // Hide indicator after animation
+            setTimeout(() => {
+                indicator.classList.remove('active');
+            }, 1000);
+            
+            photoCount++;
+            
+            // Create canvas to capture actual frame from video
+            const video = document.getElementById(feedId);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth || 400;
+            canvas.height = video.videoHeight || 300;
+            
+            // Draw current video frame to canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert canvas to data URL (actual captured frame)
+            const capturedImage = canvas.toDataURL('image/jpeg', 0.8);
+            
+            // Add to gallery
+            const gallery = document.getElementById('photoGallery');
+            
+            // Limit gallery to 6 visible items (2 rows of 3)
+            const maxVisibleItems = 6;
+            const currentItems = gallery.children.length;
+            
+            if (currentItems >= maxVisibleItems) {
+                // Remove oldest item to maintain 6 visible items
+                gallery.removeChild(gallery.firstChild);
+            }
+            
+            gallery.innerHTML += `
+                <div class="gallery-item">
+                    <img src="${capturedImage}" alt="Drone photo ${photoCount}" title="Captured at ${new Date().toLocaleTimeString()}">
+                </div>
+            `;
+            
+            showNotification(`Photo captured (${photoCount})`, 'success');
+        }
+        
+        // Toggle video recording
+        function toggleRecording(button, feedId) {
+            isRecording = !isRecording;
+            
+            if (isRecording) {
+                button.classList.add('video-recording');
+                button.innerHTML = '<i class="fas fa-stop"></i>';
+                showNotification('Video recording started', 'info');
+            } else {
+                button.classList.remove('video-recording');
+                button.innerHTML = '<i class="fas fa-video"></i>';
+                showNotification('Video recording saved', 'success');
+            }
+        }
+        
+        // Switch camera view
+        function switchCameraView() {
+            const liveFeed = document.getElementById('liveDroneFeed');
+            const leftSidebarVideo = document.getElementById('droneFeed1');
+            
+            // Cycle through available videos
+            currentVideoIndex = (currentVideoIndex + 1) % droneVideos.length;
+            liveFeed.src = droneVideos[currentVideoIndex];
+            
+            // Sync left sidebar video with main feed
+            leftSidebarVideo.src = droneVideos[currentVideoIndex];
+            
+            // Ensure video loops and plays
+            liveFeed.loop = true;
+            liveFeed.muted = true;
+            liveFeed.autoplay = true;
+            
+            leftSidebarVideo.loop = true;
+            leftSidebarVideo.muted = true;
+            leftSidebarVideo.autoplay = true;
+            
+            // Play both videos
+            liveFeed.play().catch(function(error) {
+                console.log("Main video play failed:", error);
+            });
+            
+            leftSidebarVideo.play().catch(function(error) {
+                console.log("Left sidebar video play failed:", error);
+            });
+            
+            const cameraNames = ['Main View (video.mp4)', 'Left View (vid1.mp4)', 'Right View (vid2.mp4)', 'Forward View (vid3.mp4)', 'Backward View (vid4.mp4)'];
+            showNotification(`Camera view switched to ${cameraNames[currentVideoIndex]}`, 'info');
+        }
+        
+        // Switch to main view
+        function switchToMainView() {
+            const liveFeed = document.getElementById('liveDroneFeed');
+            const leftSidebarVideo = document.getElementById('droneFeed1');
+            
+            // Switch to main video (video.mp4)
+            currentVideoIndex = 0;
+            liveFeed.src = droneVideos[currentVideoIndex];
+            leftSidebarVideo.src = droneVideos[1]; // Keep left sidebar on vid1.mp4
+            
+            // Ensure video loops and plays
+            liveFeed.loop = true;
+            liveFeed.muted = true;
+            liveFeed.autoplay = true;
+            
+            leftSidebarVideo.loop = true;
+            leftSidebarVideo.muted = true;
+            leftSidebarVideo.autoplay = true;
+            
+            // Play both videos
+            liveFeed.play().catch(function(error) {
+                console.log("Main video play failed:", error);
+            });
+            
+            leftSidebarVideo.play().catch(function(error) {
+                console.log("Left sidebar video play failed:", error);
+            });
+            
+            showNotification('Switched to Main View (video.mp4)', 'info');
+        }
+        
+        // Switch to different video views (separate from flight controls)
+        function switchVideoView(viewType) {
+            const liveFeed = document.getElementById('liveDroneFeed');
+            let videoIndex = 0;
+            let viewName = '';
+            
+            switch(viewType) {
+                case 'left':
+                    videoIndex = 1;
+                    viewName = 'Left View (vid1.mp4)';
+                    break;
+                case 'right':
+                    videoIndex = 2;
+                    viewName = 'Right View (vid2.mp4)';
+                    break;
+                case 'forward':
+                    videoIndex = 3;
+                    viewName = 'Forward View (vid3.mp4)';
+                    break;
+                case 'backward':
+                    videoIndex = 4;
+                    viewName = 'Backward View (vid4.mp4)';
+                    break;
+                default:
+                    videoIndex = 0;
+                    viewName = 'Main View (video.mp4)';
+            }
+            
+            currentVideoIndex = videoIndex;
+            liveFeed.src = droneVideos[videoIndex];
+            liveFeed.play().catch(function(error) {
+                console.log(`${viewName} video play failed:`, error);
+            });
+            
+            showNotification(`Switched to ${viewName}`, 'info');
+        }
+        
+        // Test drone controls function
+        function testDroneControls() {
+            console.log('Testing all drone controls...');
+            
+            // Test each control
+            const testActions = ['up', 'down', 'left', 'right', 'photo', 'video', 'zoom_in', 'zoom_out'];
+            
+            testActions.forEach((action, index) => {
+                setTimeout(() => {
+                    console.log(`Testing ${action} control...`);
+                    controlDrone(action);
+                }, index * 500);
+            });
+            
+            showNotification('Testing all drone controls...', 'info');
+        }
+        
+        // Show notification toast
+        function showNotification(message, type = 'info') {
+            const toast = document.querySelector('.notification-toast');
+            const toastBody = document.getElementById('toastMessage');
+            
+            // Set message and style based on type
+            toastBody.textContent = message;
+            
+            // Change header icon based on type
+            const toastHeaderIcon = toast.querySelector('.me-2');
+            toastHeaderIcon.className = 'fas me-2';
+            
+            if (type === 'success') {
+                toastHeaderIcon.classList.add('fa-check-circle', 'text-success');
+            } else if (type === 'warning') {
+                toastHeaderIcon.classList.add('fa-exclamation-triangle', 'text-warning');
+            } else if (type === 'danger') {
+                toastHeaderIcon.classList.add('fa-exclamation-circle', 'text-danger');
+            } else {
+                toastHeaderIcon.classList.add('fa-info-circle', 'text-primary');
+            }
+            
+            // Show the toast
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+        
+        // Simulate panic button press (user view)
+        function activatePanicButton() {
+            if (confirm("Are you sure you want to activate the emergency panic button? Authorities will be notified immediately.")) {
+                document.querySelector('.glowing-btn').classList.add('disabled');
+                showNotification('Emergency alert activated! Authorities have been notified with your location.', 'danger');
+                
+                // Simulate response
+                setTimeout(() => {
+                    showNotification('Authorities are responding to your location. Estimated arrival: 12 minutes', 'info');
+                }, 3000);
+            }
+        }
+        
+        // Initialize panic button
+        document.querySelector('.glowing-btn').addEventListener('click', activatePanicButton);
+    </script>
+</body>
+</html>
