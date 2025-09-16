@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Tourist ID Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Overlay to improve readability */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 0;
+        }
+
+        /* Animated background elements */
+        .bg-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .floating-element {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        .floating-element:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+            background: rgba(255, 107, 107, 0.2);
+        }
+
+        .floating-element:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            top: 60%;
+            right: 15%;
+            animation-delay: 7s;
+            background: rgba(78, 205, 196, 0.2);
+        }
+
+        .floating-element:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            top: 80%;
+            left: 20%;
+            animation-delay: 14s;
+            background: rgba(69, 183, 209, 0.2);
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); opacity: 0.7; }
+            50% { transform: translateY(-100px) rotate(180deg); opacity: 1; }
+            100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            width: 400px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 10;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .traveller-illustration {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+            border-radius: 15px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .logo-icon {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .platform-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 5px;
+        }
+
+        .platform-subtitle {
+            font-size: 14px;
+            color: #86868b;
+            font-weight: 400;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid #d2d2d7;
+            border-radius: 10px;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: #007AFF;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+            background: white;
+        }
+
+        .form-input::placeholder {
+            color: #86868b;
+        }
+
+        .user-type-selector {
+            display: flex;
+            background: #f5f5f7;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .user-type-option {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #86868b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .user-type-option.active {
+            background: white;
+            color: #007AFF;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-type-option i {
+            font-size: 16px;
+        }
+
+        .login-type-selector {
+            display: flex;
+            background: #f5f5f7;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .login-type-option {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #86868b;
+        }
+
+        .login-type-option.active {
+            background: white;
+            color: #007AFF;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .biometric-section {
+            display: none;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .biometric-section.active {
+            display: block;
+        }
+
+        .biometric-button {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #34C759, #30D158);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);
+        }
+
+        .biometric-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(52, 199, 89, 0.4);
+        }
+
+        .biometric-icon {
+            color: white;
+            font-size: 32px;
+        }
+
+        .biometric-text {
+            font-size: 14px;
+            color: #86868b;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .login-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(0, 122, 255, 0.3);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .security-info {
+            background: rgba(52, 199, 89, 0.1);
+            border: 1px solid rgba(52, 199, 89, 0.2);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 20px;
+        }
+
+        .security-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #30A46C;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .security-text {
+            font-size: 11px;
+            color: #086F2E;
+            line-height: 1.4;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .forgot-password a {
+            color: #007AFF;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #86868b;
+        }
+
+        .blockchain-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 122, 255, 0.1);
+            border: 1px solid rgba(0, 122, 255, 0.2);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 11px;
+            color: #007AFF;
+            font-weight: 500;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                width: 90%;
+                padding: 30px 25px;
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+    </div>
+
+    <div class="login-container">
+        <div class="blockchain-indicator pulse">
+            🔗 Blockchain Secured
+        </div>
+
+        <div class="logo-section">
+            <div class="traveller-illustration">
+                <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background circle -->
+                    <circle cx="60" cy="60" r="58" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                    
+                    <!-- Traveller figure -->
+                    <!-- Head -->
+                    <circle cx="60" cy="35" r="12" fill="#FFB6A3"/>
+                    
+                    <!-- Hair -->
+                    <path d="M48 28 Q60 20 72 28 L72 35 Q60 25 48 35 Z" fill="#8B4513"/>
+                    
+                    <!-- Body -->
+                    <rect x="50" y="47" width="20" height="25" rx="3" fill="#4ECDC4"/>
+                    
+                    <!-- Backpack -->
+                    <rect x="65" y="50" width="8" height="18" rx="2" fill="#FF6B6B"/>
+                    <circle cx="69" cy="52" r="1.5" fill="#FFE4E1"/>
+                    
+                    <!-- Arms -->
+                    <rect x="42" y="50" width="6" height="15" rx="3" fill="#FFB6A3"/>
+                    <rect x="72" y="50" width="6" height="15" rx="3" fill="#FFB6A3"/>
+                    
+                    <!-- Legs -->
+                    <rect x="52" y="72" width="6" height="18" rx="3" fill="#2C5F2D"/>
+                    <rect x="62" y="72" width="6" height="18" rx="3" fill="#2C5F2D"/>
+                    
+                    <!-- Shoes -->
+                    <ellipse cx="55" cy="92" rx="4" ry="2" fill="#8B4513"/>
+                    <ellipse cx="65" cy="92" rx="4" ry="2" fill="#8B4513"/>
+                    
+                    <!-- Camera -->
+                    <rect x="42" y="62" width="8" height="5" rx="1" fill="#333"/>
+                    <circle cx="46" cy="64.5" r="2" fill="#666"/>
+                    
+                    <!-- Hat -->
+                    <ellipse cx="60" cy="28" rx="14" ry="3" fill="#FF6B6B"/>
+                    <rect x="55" y="25" width="10" height="6" rx="2" fill="#FF6B6B"/>
+                    
+                    <!-- Suitcase -->
+                    <rect x="25" y="80" width="12" height="15" rx="2" fill="#45B7D1"/>
+                    <rect x="26" y="82" width="10" height="2" rx="1" fill="#357ABD"/>
+                    <circle cx="29" cy="97" r="2" fill="#333"/>
+                    <circle cx="35" cy="97" r="2" fill="#333"/>
+                    <rect x="30" y="78" width="4" height="3" rx="1" fill="#666"/>
+                    
+                    <!-- Passport/Documents -->
+                    <rect x="85" y="75" width="8" height="12" rx="1" fill="#8B0000"/>
+                    <rect x="86" y="76" width="6" height="1" fill="#FFD700"/>
+                    
+                    <!-- Location pin -->
+                    <path d="M95 45 Q95 40 100 40 Q105 40 105 45 Q105 50 100 55 Q95 50 95 45 Z" fill="#FF6B6B"/>
+                    <circle cx="100" cy="45" r="2" fill="white"/>
+                </svg>
+            </div>
+            
+            <div class="logo">
+                <div class="logo-icon">🛡️</div>
+            </div>
+            <h1 class="platform-title">Digital Tourist ID</h1>
+            <p class="platform-subtitle">Secure • Verified • Blockchain-Based</p>
+        </div>
+
+        <div class="user-type-selector">
+            <div class="user-type-option active" onclick="switchUserType('user')">
+                <i class="fas fa-user"></i>
+                Tourist
+            </div>
+            <div class="user-type-option" onclick="switchUserType('admin')">
+                <i class="fas fa-shield-alt"></i>
+                Admin
+            </div>
+        </div>
+
+        <div class="login-type-selector" id="login-type-selector">
+            <div class="login-type-option active" onclick="switchLoginType('credentials')">
+                Credentials
+            </div>
+            <div class="login-type-option" onclick="switchLoginType('biometric')">
+                Biometric
+            </div>
+        </div>
+
+        <form id="loginForm">
+            <div id="credentials-section">
+                <div class="form-group">
+                    <label class="form-label" for="identifier" id="identifier-label">Tourist ID / Passport / Aadhaar</label>
+                    <input 
+                        type="text" 
+                        id="identifier" 
+                        class="form-input" 
+                        placeholder="Enter your ID number"
+                        required
+                    >
+                </div>
+
+                <div class="form-group" id="otp-group">
+                    <label class="form-label" for="otp">Verification Code</label>
+                    <input 
+                        type="text" 
+                        id="otp" 
+                        class="form-input" 
+                        placeholder="Enter 6-digit OTP"
+                        maxlength="6"
+                        required
+                    >
+                </div>
+
+                <div class="form-group" id="admin-email-group" style="display: none;">
+                    <label class="form-label" for="admin-email">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="admin-email" 
+                        class="form-input" 
+                        placeholder="Enter your admin email"
+                    >
+                </div>
+
+                <div class="form-group" id="admin-mobile-group" style="display: none;">
+                    <label class="form-label" for="admin-mobile">Mobile Number</label>
+                    <input 
+                        type="tel" 
+                        id="admin-mobile" 
+                        class="form-input" 
+                        placeholder="Enter your mobile number"
+                    >
+                </div>
+            </div>
+
+            <div id="biometric-section" class="biometric-section">
+                <button type="button" class="biometric-button" onclick="startBiometricAuth()">
+                    <div class="biometric-icon">👆</div>
+                </button>
+                <p class="biometric-text">Touch to verify with biometric authentication</p>
+            </div>
+
+            <button type="submit" class="login-button" id="login-button">
+                Access Digital Tourist ID
+            </button>
+        </form>
+
+        <div class="security-info" id="security-info">
+            <div class="security-title">
+                🔒 Blockchain Security
+            </div>
+            <div class="security-text">
+                Your digital identity is secured using advanced blockchain technology. All data is encrypted and verified across our distributed network.
+            </div>
+        </div>
+
+        <div class="forgot-password">
+            <a href="#" onclick="showRecovery()">Need help accessing your account?</a>
+        </div>
+
+        <div class="footer-text">
+            Protected by end-to-end encryption • Valid for visit duration only
+        </div>
+    </div>
+
+    <script>
+        let currentLoginType = 'credentials';
+        let currentUserType = 'user';
+
+        function switchUserType(type) {
+            currentUserType = type;
+            
+            // Update active tab
+            document.querySelectorAll('.user-type-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Get form elements
+            const identifierLabel = document.getElementById('identifier-label');
+            const identifierInput = document.getElementById('identifier');
+            const otpGroup = document.getElementById('otp-group');
+            const adminEmailGroup = document.getElementById('admin-email-group');
+            const adminMobileGroup = document.getElementById('admin-mobile-group');
+            const loginTypeSelector = document.getElementById('login-type-selector');
+            const securityInfo = document.getElementById('security-info');
+            const loginButton = document.getElementById('login-button');
+            
+            if (type === 'admin') {
+                // Admin form configuration
+                identifierLabel.textContent = 'Admin ID / Username';
+                identifierInput.placeholder = 'Enter your admin credentials';
+                
+                // Hide OTP group, show email and mobile
+                otpGroup.style.display = 'none';
+                adminEmailGroup.style.display = 'block';
+                adminMobileGroup.style.display = 'block';
+                
+                // Hide biometric option and security info for admin
+                loginTypeSelector.style.display = 'none';
+                securityInfo.style.display = 'none';
+                
+                // Change button text
+                loginButton.textContent = 'Access Admin Panel';
+                
+                // Make email or mobile required instead of OTP
+                document.getElementById('otp').required = false;
+                document.getElementById('admin-email').required = true;
+                document.getElementById('admin-mobile').required = true;
+                
+            } else {
+                // User form configuration
+                identifierLabel.textContent = 'Tourist ID / Passport / Aadhaar';
+                identifierInput.placeholder = 'Enter your ID number';
+                
+                // Show OTP group, hide email and mobile
+                otpGroup.style.display = 'block';
+                adminEmailGroup.style.display = 'none';
+                adminMobileGroup.style.display = 'none';
+                
+                // Show biometric option and security info for user
+                loginTypeSelector.style.display = 'flex';
+                securityInfo.style.display = 'block';
+                
+                // Change button text back
+                loginButton.textContent = 'Access Digital Tourist ID';
+                
+                // Make OTP required, email and mobile not required
+                document.getElementById('otp').required = true;
+                document.getElementById('admin-email').required = false;
+                document.getElementById('admin-mobile').required = false;
+            }
+        }
+
+        function switchLoginType(type) {
+            currentLoginType = type;
+            
+            // Update active tab
+            document.querySelectorAll('.login-type-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Show/hide sections
+            const credentialsSection = document.getElementById('credentials-section');
+            const biometricSection = document.getElementById('biometric-section');
+
+            if (type === 'credentials') {
+                credentialsSection.style.display = 'block';
+                biometricSection.classList.remove('active');
+            } else {
+                credentialsSection.style.display = 'none';
+                biometricSection.classList.add('active');
+            }
+        }
+
+        function startBiometricAuth() {
+            const button = document.querySelector('.biometric-button');
+            const text = document.querySelector('.biometric-text');
+            
+            button.style.background = 'linear-gradient(135deg, #FF9500, #FF6B00)';
+            button.innerHTML = '<div class="biometric-icon">⏳</div>';
+            text.textContent = 'Scanning biometric data...';
+
+            setTimeout(() => {
+                button.style.background = 'linear-gradient(135deg, #34C759, #30D158)';
+                button.innerHTML = '<div class="biometric-icon">✓</div>';
+                text.textContent = 'Biometric verification successful!';
+                
+                setTimeout(() => {
+                    simulateLogin();
+                }, 1000);
+            }, 2000);
+        }
+
+        function simulateLogin() {
+            const button = document.querySelector('.login-button');
+            button.textContent = 'Verifying on Blockchain...';
+            button.style.background = 'linear-gradient(135deg, #FF9500, #FF6B00)';
+            
+            setTimeout(() => {
+                button.textContent = 'Access Granted ✓';
+                button.style.background = 'linear-gradient(135deg, #34C759, #30D158)';
+                
+                setTimeout(() => {
+                    showSuccessMessage();
+                }, 1000);
+            }, 2000);
+        }
+
+        function showSuccessMessage() {
+            const welcomeMessage = currentUserType === 'admin' ? 'Welcome Admin' : 'Welcome to India';
+            const subtitleMessage = currentUserType === 'admin' ? 'Admin Dashboard Access Granted' : 'Your Digital Tourist ID has been activated';
+            const footerMessage = currentUserType === 'admin' ? 'Access to administrative controls' : 'Valid until your departure date';
+            
+            document.body.innerHTML = `
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    background: url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80') no-repeat center center fixed;
+                    background-size: cover;
+                    color: white;
+                    text-align: center;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    position: relative;
+                ">
+                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6);"></div>
+                    <div style="position: relative; z-index: 10; animation: slideUp 0.8s ease-out;">
+                        <div style="font-size: 80px; margin-bottom: 20px;">✓</div>
+                        <h1 style="font-size: 32px; font-weight: 600; margin-bottom: 10px;">${welcomeMessage}</h1>
+                        <p style="font-size: 18px; opacity: 0.9;">${subtitleMessage}</p>
+                        <p style="font-size: 14px; opacity: 0.7; margin-top: 20px;">${footerMessage}</p>
+                        <div style="margin-top: 30px;">
+                            <button onclick="redirectToPage()" style="
+                                background: linear-gradient(135deg, #007AFF, #5856D6);
+                                color: white;
+                                border: none;
+                                padding: 15px 30px;
+                                border-radius: 10px;
+                                font-size: 16px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                Continue to ${currentUserType === 'admin' ? 'Admin Panel' : 'Tourist Dashboard'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function redirectToPage() {
+            if (currentUserType === 'admin') {
+                window.location.href = 'def4.html';
+            } else {
+                window.location.href = 'Tourist.html';
+            }
+        }
+
+        function showRecovery() {
+            alert('Recovery options:\n\n1. Contact your embassy\n2. Visit nearest tourist help center\n3. Use emergency contact verification\n4. Biometric recovery at authorized checkpoints');
+        }
+
+        // Handle form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (currentLoginType === 'credentials') {
+                const identifier = document.getElementById('identifier').value;
+                
+                if (currentUserType === 'admin') {
+                    const email = document.getElementById('admin-email').value;
+                    const mobile = document.getElementById('admin-mobile').value;
+                    
+                    if (identifier && (email || mobile)) {
+                        simulateLogin();
+                    } else {
+                        alert('Please fill in Admin ID and either Email or Mobile number');
+                    }
+                } else {
+                    const otp = document.getElementById('otp').value;
+                    
+                    if (identifier && otp) {
+                        simulateLogin();
+                    } else {
+                        alert('Please fill in all required fields');
+                    }
+                }
+            }
+        });
+
+        // Auto-format OTP input
+        document.getElementById('otp').addEventListener('input', function(e) {
+            const value = e.target.value.replace(/\D/g, '');
+            e.target.value = value;
+        });
+
+        // Auto-format mobile number input
+        document.getElementById('admin-mobile').addEventListener('input', function(e) {
+            const value = e.target.value.replace(/\D/g, '');
+            e.target.value = value;
+        });
+
+        // Add some dynamic elements
+        setInterval(() => {
+            const elements = document.querySelectorAll('.floating-element');
+            elements.forEach((el, index) => {
+                if (Math.random() > 0.7) {
+                    el.style.animationDelay = Math.random() * 20 + 's';
+                }
+            });
+        }, 10000);
+    </script>
+</body>
+</html>

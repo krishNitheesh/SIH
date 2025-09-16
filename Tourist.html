@@ -1,0 +1,3476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tourist Safety Navigator</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <!-- Mapbox GL for 3D maps -->
+  <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.2/mapbox-gl.css' rel='stylesheet' />
+  <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.2/mapbox-gl.js'></script>
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" type="text/css">
+  <style>
+    :root {
+      --neon-blue: #00f3ff;
+      --neon-pink: #ff00ff;
+      --neon-green: #39ff14;
+      --neon-yellow: #ffff00;
+      --neon-purple: #bd00ff;
+      --dark-bg: #0f1120;
+      --card-bg: rgba(21, 24, 48, 0.9);
+      --text-color: #ffffff;
+      --warning-color: #ff073a;
+      --safe-color: #00ff8c;
+      --light-bg: #f0f2f5;
+      --light-card: #ffffff;
+      --light-text: #333333;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0f1120 0%, #1a1f3b 100%);
+      color: var(--text-color);
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 0;
+      overflow-x: hidden;
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode {
+      background: linear-gradient(135deg, #f0f2f5 0%, #e1e5eb 100%);
+      color: var(--light-text);
+    }
+    
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(189, 0, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(0, 243, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(255, 0, 255, 0.15) 0%, transparent 50%);
+      z-index: -1;
+    }
+
+    body.light-mode::before {
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(189, 0, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(0, 243, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(255, 0, 255, 0.05) 0%, transparent 50%);
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      background: rgba(15, 17, 32, 0.9);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 20px 0;
+      text-align: center;
+      margin-bottom: 25px;
+      border-bottom: 2px solid var(--neon-blue);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode header {
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--light-text);
+      border-bottom: 2px solid #007bff;
+      box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
+    }
+    
+    h1 {
+      font-size: 2.8rem;
+      margin-bottom: 10px;
+      font-weight: 700;
+      background: linear-gradient(45deg, var(--neon-blue), var(--neon-pink));
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+    }
+
+    body.light-mode h1 {
+      background: linear-gradient(45deg, #007bff, #6610f2);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+    }
+    
+    .subtitle {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      max-width: 600px;
+      margin: 0 auto;
+      color: var(--neon-green);
+    }
+
+    body.light-mode .subtitle {
+      color: #28a745;
+    }
+    
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 25px;
+      margin-bottom: 25px;
+    }
+    
+    @media (max-width: 1100px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode .card {
+      background: var(--light-card);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
+    }
+
+    body.light-mode .card::before {
+      background: linear-gradient(90deg, #007bff, #6610f2);
+    }
+    
+    .card-title {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: var(--neon-blue);
+      display: flex;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+    }
+
+    body.light-mode .card-title {
+      color: #007bff;
+      border-bottom: 1px solid rgba(0, 123, 255, 0.3);
+    }
+    
+    .card-title i {
+      margin-right: 10px;
+      color: var(--neon-blue);
+    }
+
+    body.light-mode .card-title i {
+      color: #007bff;
+    }
+    
+    #map {
+      height: 500px;
+      width: 100%;
+      border-radius: 12px;
+      z-index: 1;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+    }
+    
+    .mapboxgl-map {
+      border-radius: 12px;
+    }
+    
+    .status-indicators {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+    
+    .status-item {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      transition: transform 0.3s ease;
+    }
+
+    body.light-mode .status-item {
+      background: var(--light-card);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-item:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+    }
+
+    body.light-mode .status-item:hover {
+      box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+    }
+    
+    .status-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+    }
+    
+    .status-item h3 {
+      margin-bottom: 10px;
+      color: var(--neon-green);
+    }
+
+    body.light-mode .status-item h3 {
+      color: #28a745;
+    }
+    
+    .good {
+      color: var(--neon-green);
+    }
+
+    body.light-mode .good {
+      color: #28a745;
+    }
+    
+    .warning {
+      color: var(--neon-yellow);
+    }
+
+    body.light-mode .warning {
+      color: #ffc107;
+    }
+    
+    .danger {
+      color: var(--warning-color);
+    }
+
+    body.light-mode .danger {
+      color: #dc3545;
+    }
+    
+    .alert-box {
+      background: rgba(255, 7, 58, 0.15);
+      border-left: 5px solid var(--warning-color);
+      padding: 20px;
+      margin-bottom: 25px;
+      border-radius: 8px;
+      display: none;
+      animation: pulse 2s infinite;
+      box-shadow: 0 0 15px rgba(255, 7, 58, 0.3);
+      backdrop-filter: blur(5px);
+    }
+
+    body.light-mode .alert-box {
+      background: rgba(220, 53, 69, 0.1);
+      border-left: 5px solid #dc3545;
+      box-shadow: 0 0 15px rgba(220, 53, 69, 0.2);
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 7, 58, 0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(255, 7, 58, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 7, 58, 0); }
+    }
+    
+    .alert-box.visible {
+      display: block;
+    }
+    
+    .alert-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: var(--warning-color);
+      display: flex;
+      align-items: center;
+    }
+
+    body.light-mode .alert-title {
+      color: #dc3545;
+    }
+    
+    .alert-title i {
+      margin-right: 10px;
+    }
+    
+    .signal-direction {
+      display: flex;
+      align-items: center;
+      margin-top: 15px;
+      font-weight: 500;
+    }
+    
+    .signal-arrow {
+      font-size: 28px;
+      margin: 0 12px;
+      color: var(--neon-blue);
+    }
+
+    body.light-mode .signal-arrow {
+      color: #007bff;
+    }
+    
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 25px;
+    }
+    
+    button {
+      padding: 15px 25px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.light-mode button {
+      background: linear-gradient(45deg, #007bff, #6610f2);
+      box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
+    }
+    
+    button i {
+      margin-right: 10px;
+    }
+    
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+    }
+
+    body.light-mode button:hover {
+      box-shadow: 0 0 20px rgba(0, 123, 255, 0.5);
+    }
+    
+    #panic-btn {
+      background: linear-gradient(45deg, var(--warning-color), #ff4d6d);
+      grid-column: 1 / -1;
+      padding: 20px;
+      font-size: 1.2rem;
+      animation: pulse 2s infinite;
+      margin-top: 10px;
+      border-radius: 50px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      justify-self: center;
+      font-size: 1.4rem;
+    }
+
+    body.light-mode #panic-btn {
+      background: linear-gradient(45deg, #dc3545, #e4606d);
+    }
+    
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      padding: 25px;
+      color: var(--neon-blue);
+      font-size: 0.95rem;
+      background: var(--card-bg);
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode footer {
+      background: var(--light-card);
+      color: #007bff;
+      box-shadow: 0 0 15px rgba(0, 123, 255, 0.2);
+      border: 1px solid rgba(0, 123, 255, 0.2);
+    }
+    
+    .compass-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 20px 0;
+    }
+    
+    .compass {
+      width: 220px;
+      height: 220px;
+      margin: 0 auto;
+      position: relative;
+      background: rgba(21, 24, 48, 0.8);
+      border-radius: 50%;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: var(--neon-blue);
+      border: 2px solid var(--neon-blue);
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode .compass {
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 20px rgba(0, 123, 255, 0.3);
+      color: #007bff;
+      border: 2px solid #007bff;
+    }
+    
+    .compass-direction {
+      font-size: 1.5rem;
+      margin-top: 15px;
+      font-weight: 600;
+      color: var(--neon-green);
+      text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+    }
+
+    body.light-mode .compass-direction {
+      color: #28a745;
+      text-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+    }
+    
+    .direction-arrow {
+      position: absolute;
+      width: 4px;
+      height: 90px;
+      background: var(--warning-color);
+      top: 50%;
+      left: 50%;
+      transform-origin: bottom center;
+      z-index: 2;
+      border-radius: 4px 4px 0 0;
+      box-shadow: 0 0 10px var(--warning-color);
+      transform: translateX(-50%) rotate(0deg);
+    }
+    
+    .compass-markers {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+    }
+    
+    .compass-marker {
+      position: absolute;
+      width: 2px;
+      height: 10px;
+      background: var(--neon-blue);
+      left: 50%;
+      transform-origin: bottom center;
+    }
+
+    body.light-mode .compass-marker {
+      background: #007bff;
+    }
+    
+    .compass-marker.main {
+      height: 15px;
+      width: 3px;
+      background: var(--warning-color);
+    }
+
+    body.light-mode .compass-marker.main {
+      background: #dc3545;
+    }
+    
+    .compass-letter {
+      position: absolute;
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: var(--neon-blue);
+      text-shadow: 0 0 5px rgba(0, 243, 255, 0.5);
+    }
+
+    body.light-mode .compass-letter {
+      color: #007bff;
+      text-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+    }
+    
+    .navigation-instruction {
+      text-align: center;
+      margin: 20px 0;
+      padding: 20px;
+      background: rgba(21, 24, 48, 0.6);
+      border-radius: 10px;
+      font-size: 1.2rem;
+      box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.2);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode .navigation-instruction {
+      background: rgba(255, 255, 255, 0.6);
+      box-shadow: inset 0 0 10px rgba(0, 123, 255, 0.2);
+      border: 1px solid rgba(0, 123, 255, 0.2);
+    }
+
+    body:not(.light-mode) .navigation-instruction {
+      background: rgba(21, 24, 48, 0.6);
+      box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.2);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+    }
+    
+    .instruction-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      color: var(--neon-green);
+      text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+    }
+
+    body.light-mode .instruction-icon {
+      color: #28a745;
+      text-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+    }
+    
+    .alternative-routes {
+      margin-top: 25px;
+    }
+    
+    .alternative-routes h3 {
+      margin-bottom: 15px;
+      color: var(--neon-blue);
+      display: flex;
+      align-items: center;
+    }
+
+    body.light-mode .alternative-routes h3 {
+      color: #007bff;
+    }
+    
+    .alternative-routes ul {
+      list-style-type: none;
+    }
+    
+    .alternative-routes li {
+      padding: 15px;
+      margin-bottom: 15px;
+      background: rgba(21, 24, 48, 0.6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+      border: 1px solid rgba(0, 243, 255, 0.2);
+    }
+
+    body.light-mode .alternative-routes li {
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(0, 123, 255, 0.2);
+    }
+    
+    .alternative-routes li:hover {
+      transform: translateX(5px);
+      background: rgba(0, 243, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+    }
+
+    body.light-mode .alternative-routes li:hover {
+      background: rgba(0, 123, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
+    }
+    
+    .alternative-routes li i {
+      margin-right: 15px;
+      color: var(--neon-green);
+      font-size: 1.5rem;
+    }
+
+    body.light-mode .alternative-routes li i {
+      color: #28a745;
+    }
+    
+    .panic-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(5px);
+    }
+    
+    .panic-modal.visible {
+      display: flex;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .panic-content {
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 15px;
+      text-align: center;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 0 30px rgba(255, 7, 58, 0.5);
+      border: 2px solid var(--warning-color);
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode .panic-content {
+      background: var(--light-card);
+      box-shadow: 0 0 30px rgba(220, 53, 69, 0.3);
+      border: 2px solid #dc3545;
+    }
+    
+    .panic-content h2 {
+      color: var(--warning-color);
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2rem;
+    }
+
+    body.light-mode .panic-content h2 {
+      color: #dc3545;
+    }
+    
+    .panic-content h2 i {
+      margin-right: 15px;
+    }
+    
+    .panic-content p {
+      margin-bottom: 30px;
+      line-height: 1.6;
+      font-size: 1.1rem;
+    }
+    
+    .panic-actions {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+    
+    .panic-btn {
+      padding: 15px 30px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1.1rem;
+    }
+    
+    .panic-cancel {
+      background: linear-gradient(45deg, #6c757d, #495057);
+      color: white;
+    }
+    
+    .panic-confirm {
+      background: linear-gradient(45deg, var(--warning-color), #ff4d6d);
+      color: white;
+      box-shadow: 0 0 20px rgba(255, 7, 58, 0.5);
+    }
+
+    body.light-mode .panic-confirm {
+      background: linear-gradient(45deg, #dc3545, #e4606d);
+      box-shadow: 0 0 20px rgba(220, 53, 69, 0.3);
+    }
+    
+    .emergency-options {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin: 25px 0;
+    }
+    
+    .emergency-option-btn {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: left;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .emergency-option-btn i {
+      font-size: 1.5rem;
+      margin-right: 15px;
+      width: 30px;
+      text-align: center;
+    }
+    
+    .emergency-option-btn span {
+      flex: 1;
+    }
+    
+    .medical-emergency {
+      background: linear-gradient(45deg, #e74c3c, #c0392b);
+      color: white;
+      border-left: 5px solid #c0392b;
+    }
+    
+    .medical-emergency:hover {
+      background: linear-gradient(45deg, #c0392b, #a93226);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+    }
+    
+    .threatening-emergency {
+      background: linear-gradient(45deg, #8e44ad, #7d3c98);
+      color: white;
+      border-left: 5px solid #7d3c98;
+    }
+    
+    .threatening-emergency:hover {
+      background: linear-gradient(45deg, #7d3c98, #6c3483);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(142, 68, 173, 0.4);
+    }
+    
+    .other-emergency {
+      background: linear-gradient(45deg, #f39c12, #e67e22);
+      color: white;
+      border-left: 5px solid #e67e22;
+    }
+    
+    .other-emergency:hover {
+      background: linear-gradient(45deg, #e67e22, #d35400);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+    }
+    
+    .emergency-details {
+      margin: 20px 0;
+    }
+    
+    .emergency-details textarea {
+      width: 100%;
+      padding: 15px;
+      border: 2px solid var(--neon-blue);
+      border-radius: 8px;
+      background: var(--card-bg);
+      color: var(--text-color);
+      font-size: 1rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 100px;
+      transition: all 0.3s ease;
+    }
+    
+    .emergency-details textarea:focus {
+      outline: none;
+      border-color: var(--neon-green);
+      box-shadow: 0 0 10px rgba(57, 255, 20, 0.3);
+    }
+    
+    body.light-mode .emergency-details textarea {
+      background: var(--light-card);
+      color: var(--light-text);
+      border-color: #007bff;
+    }
+    
+    body.light-mode .emergency-details textarea:focus {
+      border-color: #28a745;
+      box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+    }
+    
+    /* Important Location Markers */
+    .important-marker {
+      background: white;
+      border-radius: 50%;
+      border: 3px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+      animation: pulse-glow 2s infinite;
+      transition: all 0.3s ease;
+    }
+    
+    .important-marker:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
+    }
+    
+    .hospital-marker {
+      background: #e74c3c;
+      border-color: #c0392b;
+      width: 50px;
+      height: 50px;
+    }
+    
+    .crowded-marker {
+      background: #f39c12;
+      border-color: #e67e22;
+      width: 45px;
+      height: 45px;
+    }
+    
+    .police-marker {
+      background: #3498db;
+      border-color: #2980b9;
+      width: 50px;
+      height: 50px;
+    }
+    
+    @keyframes pulse-glow {
+      0% {
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 25px rgba(0, 0, 0, 0.6), 0 0 35px rgba(0, 0, 0, 0.3);
+      }
+      100% {
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+      }
+    }
+    
+    .marker-popup {
+      text-align: center;
+      min-width: 200px;
+    }
+    
+    .marker-popup h3 {
+      margin: 0 0 10px 0;
+      color: var(--neon-blue);
+      font-size: 1.1rem;
+    }
+    
+    .marker-popup p {
+      margin: 5px 0;
+      font-size: 0.9rem;
+      color: var(--text-color);
+    }
+    
+    .marker-popup .phone {
+      color: var(--neon-green);
+      font-weight: bold;
+    }
+    
+    .marker-popup .address {
+      color: #666;
+      font-style: italic;
+    }
+    
+    body.light-mode .marker-popup h3 {
+      color: #007bff;
+    }
+    
+    body.light-mode .marker-popup p {
+      color: var(--light-text);
+    }
+    
+    body.light-mode .marker-popup .phone {
+      color: #28a745;
+    }
+    
+    body.light-mode .marker-popup .address {
+      color: #888;
+    }
+    
+    /* Map Legend */
+    .map-legend {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--neon-blue);
+      z-index: 2001;
+      min-width: 180px;
+      backdrop-filter: blur(5px);
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    body.light-mode .map-legend {
+      background: var(--light-card);
+      border: 1px solid #007bff;
+      box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    .map-legend h4 {
+      margin: 0 0 10px 0;
+      color: var(--neon-blue);
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+    }
+    
+    body.light-mode .map-legend h4 {
+      color: #007bff;
+    }
+    
+    .map-legend h4 i {
+      margin-right: 8px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+    
+    .legend-item:hover {
+      background: rgba(0, 243, 255, 0.1);
+      transform: translateX(5px);
+    }
+    
+    body.light-mode .legend-item:hover {
+      background: rgba(0, 123, 255, 0.1);
+    }
+    
+    .legend-item span {
+      line-height: 1.3;
+    }
+    
+    .legend-item small {
+      display: block;
+      font-size: 0.7rem;
+      color: #888;
+      margin-top: 2px;
+    }
+    
+    body.light-mode .legend-item small {
+      color: #666;
+    }
+    
+    .legend-marker {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+      font-size: 0.7rem;
+      color: white;
+      border: 2px solid;
+      flex-shrink: 0;
+    }
+    
+    .legend-marker.hospital-marker {
+      background: #e74c3c;
+      border-color: #c0392b;
+    }
+    
+    .legend-marker.crowded-marker {
+      background: #f39c12;
+      border-color: #e67e22;
+    }
+    
+    .legend-marker.police-marker {
+      background: #3498db;
+      border-color: #2980b9;
+    }
+    
+    /* Ensure map legend is always visible */
+    #map-legend {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      position: absolute !important;
+      top: 10px !important;
+      left: 10px !important;
+      z-index: 2001 !important;
+    }
+    
+    /* Ensure all legend items are visible */
+    #map-legend .legend-item {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      margin-bottom: 10px !important;
+    }
+    
+    #map-legend .legend-item:first-child,
+    #map-legend .legend-item:nth-child(2),
+    #map-legend .legend-item:last-child {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    /* Popup Action Buttons */
+    .popup-actions {
+      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .popup-btn {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    
+    .popup-btn i {
+      margin-right: 6px;
+      font-size: 0.7rem;
+    }
+    
+    .route-btn {
+      background: linear-gradient(45deg, #e74c3c, #c0392b);
+      color: white;
+      box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+    }
+    
+    .route-btn:hover {
+      background: linear-gradient(45deg, #c0392b, #a93226);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+    }
+    
+    .direct-btn {
+      background: linear-gradient(45deg, #3498db, #2980b9);
+      color: white;
+      box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+    }
+    
+    .direct-btn:hover {
+      background: linear-gradient(45deg, #2980b9, #1f618d);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+    }
+    
+    /* Emergency Routing Notification */
+    .emergency-routing-notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2000;
+      background: var(--card-bg);
+      border: 2px solid var(--warning-color);
+      border-radius: 12px;
+      box-shadow: 0 0 25px rgba(255, 7, 58, 0.5);
+      animation: slideInRight 0.5s ease;
+      max-width: 350px;
+    }
+    
+    body.light-mode .emergency-routing-notification {
+      background: var(--light-card);
+      border: 2px solid #dc3545;
+      box-shadow: 0 0 25px rgba(220, 53, 69, 0.3);
+    }
+    
+    .notification-content {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      gap: 12px;
+    }
+    
+    .notification-content i {
+      font-size: 2rem;
+      color: var(--warning-color);
+      animation: pulse 1.5s infinite;
+    }
+    
+    body.light-mode .notification-content i {
+      color: #dc3545;
+    }
+    
+    .notification-text {
+      flex: 1;
+    }
+    
+    .notification-text h4 {
+      margin: 0 0 5px 0;
+      color: var(--warning-color);
+      font-size: 1rem;
+    }
+    
+    body.light-mode .notification-text h4 {
+      color: #dc3545;
+    }
+    
+    .notification-text p {
+      margin: 2px 0;
+      font-size: 0.85rem;
+      color: var(--text-color);
+    }
+    
+    body.light-mode .notification-text p {
+      color: var(--light-text);
+    }
+    
+    .notification-close {
+      background: none;
+      border: none;
+      color: var(--text-color);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0;
+      width: 25px;
+      height: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+    
+    .notification-close:hover {
+      background: rgba(255, 7, 58, 0.2);
+      color: var(--warning-color);
+    }
+    
+    body.light-mode .notification-close {
+      color: var(--light-text);
+    }
+    
+    body.light-mode .notification-close:hover {
+      background: rgba(220, 53, 69, 0.2);
+      color: #dc3545;
+    }
+    
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .signal-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 15px;
+    }
+    
+    .bar {
+      width: 10px;
+      height: 6px;
+      background: #6c757d;
+      margin: 0 3px;
+      border-radius: 3px;
+    }
+    
+    .bar.active {
+      background: var(--neon-green);
+      box-shadow: 0 0 10px var(--neon-green);
+    }
+
+    body.light-mode .bar.active {
+      background: #28a745;
+      box-shadow: 0 0 10px #28a745;
+    }
+    
+    .bar.warning {
+      background: var(--neon-yellow);
+      box-shadow: 0 0 10px var(--neon-yellow);
+    }
+
+    body.light-mode .bar.warning {
+      background: #ffc107;
+      box-shadow: 0 0 10px #ffc107;
+    }
+    
+    .bar.danger {
+      background: var(--warning-color);
+      box-shadow: 0 0 10px var(--warning-color);
+    }
+
+    body.light-mode .bar.danger {
+      background: #dc3545;
+      box-shadow: 0 0 10px #dc3545;
+    }
+    
+    .theme-switcher {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    
+    .theme-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--neon-blue);
+      color: var(--neon-blue);
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    }
+
+    body.light-mode .theme-btn {
+      background: var(--light-card);
+      border: 1px solid #007bff;
+      color: #007bff;
+      box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+    }
+    
+    .theme-btn:hover {
+      background: rgba(0, 243, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+    }
+
+    body.light-mode .theme-btn:hover {
+      background: rgba(0, 123, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
+    }
+    
+    .destination-controls {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    
+    .destination-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 12px 15px;
+      border-radius: 8px;
+      border: 1px solid var(--neon-blue);
+      background: rgba(21, 24, 48, 0.6);
+      color: white;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode .destination-input {
+      border: 1px solid #007bff;
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--light-text);
+    }
+    
+    .destination-input:focus {
+      outline: none;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+    }
+
+    body.light-mode .destination-input:focus {
+      box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+    }
+    
+    .set-destination-btn {
+      background: linear-gradient(45deg, var(--neon-green), #2ecc71);
+    }
+
+    body.light-mode .set-destination-btn {
+      background: linear-gradient(45deg, #28a745, #20c997);
+    }
+    
+    .clear-destination-btn {
+      background: linear-gradient(45deg, #6c757d, #495057);
+    }
+    
+    .destination-marker {
+      filter: hue-rotate(90deg);
+    }
+    
+    .route-line {
+      stroke: var(--neon-green);
+      stroke-width: 4;
+      stroke-dasharray: 10;
+      animation: dash 1s linear infinite;
+    }
+
+    body.light-mode .route-line {
+      stroke: #28a745;
+    }
+    
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -20;
+      }
+    }
+    
+    .map-overlay {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: var(--card-bg);
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--neon-blue);
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode .map-overlay {
+      background: var(--light-card);
+      border: 1px solid #007bff;
+    }
+    
+    .map-overlay button {
+      padding: 8px 12px;
+      margin: 5px;
+      font-size: 0.9rem;
+    }
+    
+    .safe-route {
+      stroke: var(--safe-color);
+      stroke-width: 4;
+      stroke-dasharray: 10;
+      animation: dash 1s linear infinite;
+    }
+
+    body.light-mode .safe-route {
+      stroke: #20c997;
+    }
+    
+    .hazard-zone {
+      stroke: var(--warning-color);
+      stroke-width: 2;
+      fill: rgba(255, 7, 58, 0.2);
+    }
+
+    body.light-mode .hazard-zone {
+      stroke: #dc3545;
+      fill: rgba(220, 53, 69, 0.2);
+    }
+    
+    .autocomplete-items {
+      position: absolute;
+      border: 1px solid var(--neon-blue);
+      border-top: none;
+      z-index: 1001;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-radius: 0 0 8px 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode .autocomplete-items {
+      border: 1px solid #007bff;
+      background: var(--light-card);
+    }
+    
+    .autocomplete-item {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+    }
+
+    body.light-mode .autocomplete-item {
+      border-bottom: 1px solid rgba(0, 123, 255, 0.2);
+    }
+    
+    .autocomplete-item:hover {
+      background: rgba(0, 243, 255, 0.1);
+    }
+
+    body.light-mode .autocomplete-item:hover {
+      background: rgba(0, 123, 255, 0.1);
+    }
+    
+    .location-tracking {
+      display: flex;
+      align-items: center;
+      margin-top: 15px;
+      justify-content: center;
+    }
+    
+    .tracking-status {
+      margin-left: 10px;
+      font-size: 0.9rem;
+      color: var(--neon-green);
+    }
+
+    body.light-mode .tracking-status {
+      color: #28a745;
+    }
+    
+    .movement-indicator {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: var(--neon-green);
+      box-shadow: 0 0 10px var(--neon-green);
+      animation: pulse 1.5s infinite;
+    }
+
+    body.light-mode .movement-indicator {
+      background: #28a745;
+      box-shadow: 0 0 10px #28a745;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    .map-type-selector {
+      margin-bottom: 15px;
+    }
+
+    .map-type-selector select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      background: var(--card-bg);
+      color: white;
+      border: 1px solid var(--neon-blue);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    }
+
+    body.light-mode .map-type-selector select {
+      background: var(--light-card);
+      color: var(--light-text);
+      border: 1px solid #007bff;
+      box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+    }
+
+
+    .map-suggestion {
+      top: 100px;
+      right: 10px;
+      z-index: 1000;
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--neon-blue);
+      display: none;
+      transition: all 0.3s ease;
+    }
+
+    body.light-mode .map-suggestion {
+      background: var(--light-card);
+      border: 1px solid #007bff;
+    }
+
+    .map-suggestion.visible {
+      display: block;
+    }
+
+    .map-suggestion h4 {
+      margin-bottom: 10px;
+      color: var(--neon-blue);
+      display: flex;
+      align-items: center;
+    }
+
+    body.light-mode .map-suggestion h4 {
+      color: #007bff;
+    }
+
+    .map-suggestion h4 i {
+      margin-right: 8px;
+    }
+
+    .wrong-direction-warning {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: rgba(255, 7, 58, 0.9);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(255, 7, 58, 0.5);
+      display: none;
+      animation: pulse 1s infinite;
+      max-width: 300px;
+    }
+
+    .wrong-direction-warning.visible {
+      display: block;
+    }
+
+    .wrong-direction-warning h4 {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+    }
+
+    .wrong-direction-warning h4 i {
+      margin-right: 10px;
+    }
+
+    .routing-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 999;
+    }
+
+    .routing-btn {
+      padding: 10px 15px;
+      font-size: 0.9rem;
+    }
+
+    .route-info {
+      margin-top: 15px;
+      padding: 10px;
+      background: rgba(21, 24, 48, 0.6);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      border: 1px solid rgba(0, 243, 255, 0.2);
+    }
+
+    .leaflet-routing-container {
+      background: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--neon-blue);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    body.light-mode .leaflet-routing-container {
+      background: var(--light-card);
+      color: var(--light-text);
+      border: 1px solid #007bff;
+      box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+    }
+
+    .leaflet-routing-container table {
+      color: inherit;
+      background: transparent;
+    }
+
+    .leaflet-routing-container tr {
+      background: transparent;
+    }
+
+    .leaflet-routing-container h2 {
+      color: var(--neon-blue);
+    }
+
+    body.light-mode .leaflet-routing-container h2 {
+      color: #007bff;
+    }
+
+    body:not(.light-mode) .leaflet-routing-container:hover {
+      background: rgba(21, 24, 48, 0.95);
+      border-color: var(--neon-green);
+    }
+
+    body:not(.light-mode) .leaflet-routing-container table tr:hover {
+      background: rgba(0, 243, 255, 0.15);
+    }
+
+    body.light-mode .leaflet-routing-container:hover {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: #28a745;
+    }
+
+    body.light-mode .leaflet-routing-container table tr:hover {
+      background: rgba(0, 123, 255, 0.1);
+    }
+
+    body.light-mode .route-info {
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(0, 123, 255, 0.2);
+    }
+
+    .map-type-info {
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(21, 24, 48, 0.6);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      border: 1px solid rgba(0, 243, 255, 0.2);
+    }
+
+    body.light-mode .map-type-info {
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(0, 123, 255, 0.2);
+    }
+
+    .mapboxgl-ctrl-top-right {
+      top: 120px;
+      right: 10px;
+    }
+
+    .mapboxgl-ctrl-geocoder {
+      min-width: 300px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .map-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .accuracy-display {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: var(--card-bg);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      z-index: 1000;
+      border: 1px solid var(--neon-blue);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    }
+
+    body.light-mode .accuracy-display {
+      background: var(--light-card);
+      border: 1px solid #007bff;
+      box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+    }
+
+    .map-mode-indicator {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: var(--card-bg);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      z-index: 1000;
+      border: 1px solid var(--neon-blue);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    }
+
+    body.light-mode .map-mode-indicator {
+      background: var(--light-card);
+      border: 1px solid #007bff;
+      box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="theme-switcher">
+    <button class="theme-btn" id="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</button>
+  </div>
+
+  <header>
+    <div class="container">
+      <h1><i class="fas fa-map-marked-alt"></i> Tourist Safety Navigator</h1>
+      <p class="subtitle">Real-time safety alerts and navigation assistance for tourists</p>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="status-indicators">
+      <div class="status-item">
+        <div class="status-icon"><i class="fas fa-signal"></i></div>
+        <h3>Signal Strength</h3>
+        <div class="signal-bar">
+          <div class="bar active"></div>
+          <div class="bar active"></div>
+          <div class="bar active"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
+        <p id="signal-status">Good</p>
+      </div>
+      <div class="status-item">
+        <div class="status-icon"><i class="fas fa-compass"></i></div>
+        <h3>Current Direction</h3>
+        <p id="direction-status">North (0°)</p>
+      </div>
+      <div class="status-item">
+        <div class="status-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <h3>Hazard Alerts</h3>
+        <p id="hazard-status">No hazards detected</p>
+      </div>
+      <div class="status-item">
+        <div class="status-icon"><i class="fas fa-road"></i></div>
+        <h3>Destination</h3>
+        <p id="destination-status">Not set</p>
+      </div>
+    </div>
+
+    <div id="alert-box" class="alert-box">
+      <div class="alert-title"><i class="fas fa-exclamation-circle"></i> Safety Alert</div>
+      <div id="alert-message"></div>
+      <div id="signal-suggestion" class="signal-direction">
+        <span>For better signal: move </span>
+        <span class="signal-arrow" id="signal-arrow">→</span>
+        <span id="signal-direction">East</span>
+      </div>
+    </div>
+
+    <div class="dashboard">
+      <div class="card">
+        <h2 class="card-title"><i class="fas fa-map-marked"></i> Live Location Map</h2>
+        <div class="map-controls-panel">
+          <div class="map-type-selector">
+            <select id="map-type-selector">
+              <option value="road">Road / Street Map</option>
+              <option value="satellite">Satellite Map</option>
+              <option value="terrain">Terrain Map</option>
+              <option value="hybrid">Hybrid Map (Satellite + Labels)</option>
+              <option value="dark">Dark Mode Map</option>
+              <option value="topographic">Topographic Map</option>
+              <option value="transit">Transit Map</option>
+              <option value="outdoors">Outdoors Map</option>
+              <option value="navigation">Navigation Guide Map</option>
+              <option value="3d">3D Map / Globe View</option>
+              <option value="vector">Vector Tile Map</option>
+              <option value="raster">Raster Tile Map</option>
+              <option value="custom">Custom Styled Map</option>
+              <option value="heat">Heat Map</option>
+              <option value="choropleth">Choropleth Map</option>
+              <option value="indoor">Indoor Map</option>
+            </select>
+          </div>
+          <div class="location-tracking">
+            <div class="movement-indicator" id="movement-indicator"></div>
+            <div class="tracking-status" id="tracking-status">Tracking active</div>
+          </div>
+          
+          <div id="map-suggestion" class="map-suggestion">
+            <h4><i class="fas fa-lightbulb"></i> Map Suggestion</h4>
+            <p id="suggestion-text">Road map is best for navigation in urban areas</p>
+          </div>
+          <div id="map-container" style="position: relative; overflow: visible;">
+            <div id="map"></div>
+            <div id="map-loading" class="map-loading" style="display: none;">
+              <i class="fas fa-spinner fa-spin"></i> Loading map...
+            </div>
+            <div class="accuracy-display" id="accuracy-display">Accuracy: 0m</div>
+            <div class="map-mode-indicator" id="map-mode-indicator">2D Mode</div>
+            <div class="map-legend" id="map-legend">
+              <h4><i class="fas fa-info-circle"></i> Map Legend</h4>
+              <div class="legend-item">
+                <div class="legend-marker hospital-marker"><i class="fas fa-hospital"></i></div>
+                <span>Hospitals<br><small>Click to map nearest hospital</small></span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-marker crowded-marker"><i class="fas fa-users"></i></div>
+                <span>Crowded Areas<br><small>High population density zones</small></span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-marker police-marker"><i class="fas fa-shield-alt"></i></div>
+                <span>Police Stations<br><small>Click to map nearest police station</small></span>
+              </div>
+            </div>
+          </div>
+          <div class="destination-controls">
+            <input type="text" class="destination-input" id="destination-input" placeholder="Enter destination or click on map" autocomplete="off">
+            <div id="autocomplete-list" class="autocomplete-items"></div>
+            <button class="set-destination-btn" id="set-destination"><i class="fas fa-location-arrow"></i> Set Destination</button>
+            <button class="clear-destination-btn" id="clear-destination"><i class="fas fa-times"></i> Clear</button>
+          </div>
+          <div class="routing-controls">
+            <button class="routing-btn" id="walking-route"><i class="fas fa-walking"></i> Walking</button>
+            <button class="routing-btn" id="driving-route"><i class="fas fa-car"></i> Driving</button>
+            <button class="routing-btn" id="biking-route"><i class="fas fa-bicycle"></i> Biking</button>
+          </div>
+          <div class="map-type-info" id="map-type-info">
+            <strong>Road Map:</strong> Best for navigation in urban areas with clear street details.
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="card-title"><i class="fas fa-route"></i> Navigation Guidance</h2>
+        <div class="compass-container">
+          <div class="compass">
+            <div class="compass-markers" id="compass-markers"></div>
+            <div class="direction-arrow" id="direction-arrow"></div>
+            <div class="compass-direction" id="compass-direction">N</div>
+          </div>
+          <div id="direction-degree">0°</div>
+        </div>
+        <div id="navigation-instruction" class="navigation-instruction">
+          <div class="instruction-icon"><i class="fas fa-check-circle"></i></div>
+          <p>Waiting for destination setting</p>
+        </div>
+        <div class="route-info" id="route-info">
+          No route information available
+        </div>
+        <div class="alternative-routes">
+          <h3><i class="fas fa-random"></i> Safe Alternative Routes</h3>
+          <ul id="routes-list">
+            <li><i class="fas fa-arrow-left"></i> No routes calculated yet</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="refresh-btn"><i class="fas fa-sync-alt"></i> Refresh Location</button>
+      <button id="panic-btn"><i class="fas fa-bell"></i> EMERGENCY</button>
+    </div>
+  </div>
+
+  <div id="panic-modal" class="panic-modal">
+    <div class="panic-content">
+      <h2><i class="fas fa-exclamation-triangle"></i> Emergency Alert</h2>
+      <p>Please select the type of emergency you're experiencing:</p>
+      <div class="emergency-options">
+        <button class="emergency-option-btn medical-emergency" id="medical-emergency">
+          <i class="fas fa-heartbeat"></i>
+          <span>Medical Emergency</span>
+        </button>
+        <button class="emergency-option-btn threatening-emergency" id="threatening-emergency">
+          <i class="fas fa-shield-alt"></i>
+          <span>Threatening Emergency</span>
+        </button>
+        <button class="emergency-option-btn other-emergency" id="other-emergency">
+          <i class="fas fa-question-circle"></i>
+          <span>Others</span>
+        </button>
+      </div>
+      <div class="panic-actions">
+        <button class="panic-btn panic-cancel" id="panic-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Others Emergency Details Modal -->
+  <div id="others-emergency-modal" class="panic-modal">
+    <div class="panic-content">
+      <h2><i class="fas fa-question-circle"></i> Specify Emergency Type</h2>
+      <p>Please describe the nature of your emergency:</p>
+      <div class="emergency-details">
+        <textarea id="emergency-description" placeholder="Describe your emergency situation..." rows="4"></textarea>
+      </div>
+      <div class="panic-actions">
+        <button class="panic-btn panic-cancel" id="others-cancel">Back</button>
+        <button class="panic-btn panic-confirm" id="others-confirm">Send Alert</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="wrong-direction-warning" class="wrong-direction-warning">
+    <h4><i class="fas fa-exclamation-triangle"></i> Wrong Direction</h4>
+    <p>You're moving away from your destination. Please turn around or follow the suggested route.</p>
+  </div>
+
+  <footer>
+    <div class="container">
+      <p>Tourist Safety Navigator &copy; 2023 | Use this application as a supplement to local guidance and official safety information.</p>
+      <p>Always follow local advisories and exercise caution when traveling.</p>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+  <script>
+    // Initialize variables
+    let userMarker, directionArrow, accuracyCircle, watchId;
+    let userLat = 11.0168, userLng = 76.9558, userHeading = 0;
+    let destinationMarker = null;
+    let routeControl = null;
+    let isDarkMode = false;
+    let lastPosition = null;
+    let movementTimer = null;
+    let autocompleteItems = [];
+    let currentMapType = 'road';
+    let routingWaypoints = [];
+    let lastDistanceToDestination = Infinity;
+    let userSelectedMap = false;
+    let currentRouteProfile = 'walking';
+    let mapboxMap = null;
+    let is3DMode = false;
+    
+    // Mapbox access token (replace with your own)
+    const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA';
+    
+    // Initialize map
+    const map = L.map('map').setView([userLat, userLng], 13);
+    
+    // Define all map layers with distinct providers
+    const mapLayers = {
+      road: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }),
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxZoom: 19
+      }),
+      terrain: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+        maxZoom: 17
+      }),
+      hybrid: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxZoom: 19
+      }),
+      dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 19
+      }),
+      topographic: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+        maxZoom: 17
+      }),
+      transit: L.tileLayer('https://{s}.tile.thunderforest.com/transport/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://thunderforest.com/">Thunderforest</a>',
+        maxZoom: 19
+      }),
+      outdoors: L.tileLayer('https://{s}.tile.thunderforest.com/outdoors/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://thunderforest.com/">Thunderforest</a>',
+        maxZoom: 19
+      }),
+      navigation: L.tileLayer('https://{s}.tile.thunderforest.com/neighbourhood/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://thunderforest.com/">Thunderforest</a>',
+        maxZoom: 19
+      }),
+      '3d': null, // Will be handled separately with Mapbox GL
+      vector: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }),
+      raster: L.tileLayer('https://tiles.wmflabs.org/hillshading/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }),
+      custom: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }),
+      heat: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }),
+      choropleth: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }),
+      indoor: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      })
+    };
+    
+    // Map type information
+    const mapTypeInfo = {
+      road: "Best for navigation in urban areas with clear street details. Ideal for finding hotels, restaurants, museums, malls, and city landmarks.",
+      satellite: "Provides real satellite imagery for visual exploration of natural and man-made features. Perfect for viewing lakes, coastlines, mountain peaks, and rural landscapes.",
+      terrain: "Shows elevation details with contour lines, ideal for outdoor activities and hiking. Excellent for reaching mountain tops, trekking trails, and hill stations.",
+      hybrid: "Combines satellite imagery with map labels for better orientation in mixed environments. Great for touring a city near a lake, nature parks, or historical ruins.",
+      dark: "Dark theme map that reduces eye strain in low-light conditions.",
+      topographic: "Detailed topographic information with contour lines for hiking and outdoor exploration. Perfect for mountain treks, adventure travel, and camping spots.",
+      transit: "Focuses on public transportation routes including buses, trains, and subways. Ideal for navigating subway routes, bus lines, train stations, and ferry points.",
+      outdoors: "Designed for outdoor activities with detailed information about trails and natural features.",
+      navigation: "Provides detailed navigation information with clear route guidance.",
+      '3d': "3D visualization for virtual tours and urban exploration. Excellent for viewing building heights, city skylines, and iconic structures.",
+      vector: "Smooth, interactive maps that are scalable and perfect for tourism web apps.",
+      raster: "Simple static maps suitable for low-bandwidth environments and printed tourist maps.",
+      custom: "Branded tourism apps with themes. Excellent for highlighting tourist circuits, themed regions, and heritage sites.",
+      heat: "Data density visualization showing popular spots, crowd density, and festival zones.",
+      choropleth: "Color-coded regions showing cultural areas, climate zones, and tourism density.",
+      indoor: "Navigation inside buildings like airports, shopping malls, museums, and convention centers."
+    };
+    
+    // Add the road map by default
+    mapLayers.road.addTo(map);
+    
+    // Hazard zones simulation - predefined dangerous areas around Coimbatore
+    const hazardZones = [
+      {lat: 11.018, lng: 76.958, type: 'danger', radius: 200, message: 'Construction zone ahead. Proceed with caution.'},
+      {lat: 11.020, lng: 76.960, type: 'landslide', radius: 150, message: 'Possible landslide area. Avoid this route.'},
+      {lat: 11.015, lng: 76.955, type: 'cliff', radius: 100, message: 'Steep cliff edge. Stay away from this area.'},
+      {lat: 11.012, lng: 76.950, type: 'high_crime', radius: 250, message: 'High crime area reported. Avoid after dark.'},
+      {lat: 11.025, lng: 76.965, type: 'flood', radius: 180, message: 'Potential flood zone. Find alternate route.'}
+    ];
+    
+    // Important locations - hospitals, crowded areas, police stations
+    const importantLocations = [
+      // Hospitals - Coimbatore area
+      {lat: 11.0168, lng: 76.9558, type: 'hospital', name: 'Coimbatore Medical College Hospital', address: 'Avinashi Road, Coimbatore, Tamil Nadu', phone: '+91 422 220 2121', icon: 'fas fa-hospital', color: '#e74c3c'},
+      {lat: 11.0045, lng: 76.9612, type: 'hospital', name: 'PSG Hospitals', address: 'Peelamedu, Coimbatore, Tamil Nadu', phone: '+91 422 257 0170', icon: 'fas fa-hospital', color: '#e74c3c'},
+      {lat: 11.0089, lng: 76.9789, type: 'hospital', name: 'Kovai Medical Center', address: 'Avinashi Road, Coimbatore, Tamil Nadu', phone: '+91 422 262 7788', icon: 'fas fa-hospital', color: '#e74c3c'},
+      {lat: 10.9987, lng: 76.9456, type: 'hospital', name: 'Sri Ramakrishna Hospital', address: 'Periyanaickenpalayam, Coimbatore, Tamil Nadu', phone: '+91 422 450 0000', icon: 'fas fa-hospital', color: '#e74c3c'},
+      
+      // Crowded Areas - High population density areas
+      {lat: 11.0168, lng: 76.9558, type: 'crowded', name: 'Coimbatore City Center', address: 'Gandhipuram, Coimbatore', population: 'High Density', icon: 'fas fa-users', color: '#f39c12'},
+      {lat: 11.0045, lng: 76.9612, type: 'crowded', name: 'Peelamedu Area', address: 'Near PSG College, Coimbatore', population: 'Medium Density', icon: 'fas fa-users', color: '#f39c12'},
+      {lat: 11.0089, lng: 76.9789, type: 'crowded', name: 'Avinashi Road Corridor', address: 'Main Commercial Area, Coimbatore', population: 'Very High Density', icon: 'fas fa-users', color: '#f39c12'},
+      {lat: 10.9987, lng: 76.9456, type: 'crowded', name: 'Periyanaickenpalayam', address: 'Residential Hub, Coimbatore', population: 'High Density', icon: 'fas fa-users', color: '#f39c12'},
+      {lat: 11.0256, lng: 76.9234, type: 'crowded', name: 'Gandhipuram Market', address: 'Central Market Area, Coimbatore', population: 'Very High Density', icon: 'fas fa-users', color: '#f39c12'},
+      
+      // Police Stations - Coimbatore area
+      {lat: 11.0168, lng: 76.9558, type: 'police', name: 'Coimbatore City Police Station', address: 'Gandhipuram, Coimbatore, Tamil Nadu', phone: '+91 422 230 1000', icon: 'fas fa-shield-alt', color: '#3498db'},
+      {lat: 11.0045, lng: 76.9612, type: 'police', name: 'Peelamedu Police Station', address: 'Peelamedu, Coimbatore, Tamil Nadu', phone: '+91 422 257 0100', icon: 'fas fa-shield-alt', color: '#3498db'},
+      {lat: 11.0089, lng: 76.9789, type: 'police', name: 'Avinashi Road Police Station', address: 'Avinashi Road, Coimbatore, Tamil Nadu', phone: '+91 422 262 0100', icon: 'fas fa-shield-alt', color: '#3498db'},
+      {lat: 10.9987, lng: 76.9456, type: 'police', name: 'Periyanaickenpalayam Police Station', address: 'Periyanaickenpalayam, Coimbatore, Tamil Nadu', phone: '+91 422 450 0100', icon: 'fas fa-shield-alt', color: '#3498db'},
+      {lat: 11.0256, lng: 76.9234, type: 'police', name: 'Gandhipuram Police Station', address: 'Gandhipuram, Coimbatore, Tamil Nadu', phone: '+91 422 230 2000', icon: 'fas fa-shield-alt', color: '#3498db'}
+    ];
+    
+    // Signal strength zones - predefined areas with poor signal around Coimbatore
+    const signalZones = [
+      {lat: 11.018, lng: 76.952, radius: 200, strength: 'Poor'},
+      {lat: 11.012, lng: 76.948, radius: 180, strength: 'No Signal'},
+      {lat: 11.021, lng: 76.955, radius: 220, strength: 'Fair'}
+    ];
+    
+    // Good signal zones - predefined areas with strong signal around Coimbatore
+    const goodSignalZones = [
+      {lat: 11.017, lng: 76.957, radius: 300},
+      {lat: 11.018, lng: 76.955, radius: 250}
+    ];
+    
+    // Add important locations to the map
+    function addImportantLocations() {
+      importantLocations.forEach(location => {
+        // Create custom icon based on type
+        let iconClass = '';
+        let markerClass = '';
+        
+        switch(location.type) {
+          case 'hospital':
+            iconClass = 'fas fa-hospital';
+            markerClass = 'hospital-marker';
+            break;
+          case 'crowded':
+            iconClass = 'fas fa-users';
+            markerClass = 'crowded-marker';
+            break;
+          case 'police':
+            iconClass = 'fas fa-shield-alt';
+            markerClass = 'police-marker';
+            break;
+        }
+        
+        // Create custom icon
+        const customIcon = L.divIcon({
+          className: `important-marker ${markerClass}`,
+          html: `<i class="${iconClass}"></i>`,
+          iconSize: [location.type === 'tourist' ? 45 : 50, location.type === 'tourist' ? 45 : 50],
+          iconAnchor: [location.type === 'tourist' ? 22 : 25, location.type === 'tourist' ? 22 : 25]
+        });
+        
+        // Create marker with custom icon
+        const marker = L.marker([location.lat, location.lng], {icon: customIcon}).addTo(map);
+        
+        // Create popup content with routing options
+        let popupContent = `
+          <div class="marker-popup">
+            <h3>${location.name}</h3>
+            <p class="address">${location.address}</p>
+        `;
+        
+        // Add type-specific information
+        if (location.type === 'crowded') {
+          popupContent += `<p class="population">👥 Population: <strong>${location.population}</strong></p>`;
+        } else {
+          popupContent += `<p class="phone">📞 ${location.phone}</p>`;
+        }
+        
+        popupContent += `<p><strong>Type:</strong> ${location.type.charAt(0).toUpperCase() + location.type.slice(1)}</p>`;
+        
+        // Add routing buttons for emergency locations
+        if (location.type === 'hospital' || location.type === 'police') {
+          popupContent += `
+            <div class="popup-actions">
+              <button class="popup-btn route-btn" onclick="routeToNearest('${location.type}')">
+                <i class="fas fa-route"></i> Route to Nearest ${location.type === 'hospital' ? 'Hospital' : 'Police Station'}
+              </button>
+              <button class="popup-btn direct-btn" onclick="routeToThis('${location.lat}', '${location.lng}', '${location.name}')">
+                <i class="fas fa-location-arrow"></i> Route to This Location
+              </button>
+            </div>
+          `;
+        } else if (location.type === 'crowded') {
+          popupContent += `
+            <div class="popup-actions">
+              <button class="popup-btn direct-btn" onclick="routeToThis('${location.lat}', '${location.lng}', '${location.name}')">
+                <i class="fas fa-location-arrow"></i> Route to This Area
+              </button>
+            </div>
+          `;
+        }
+        
+        popupContent += `</div>`;
+        
+        // Bind popup to marker
+        marker.bindPopup(popupContent);
+        
+        // Add click event to center map on marker
+        marker.on('click', function() {
+          map.setView([location.lat, location.lng], 16);
+        });
+      });
+    }
+    
+    // Create compass markers
+    function createCompassMarkers() {
+      const markersContainer = document.getElementById('compass-markers');
+      markersContainer.innerHTML = '';
+      
+      const directions = [
+        { deg: 0, letter: 'N', main: true },
+        { deg: 45, letter: 'NE', main: false },
+        { deg: 90, letter: 'E', main: false },
+        { deg: 135, letter: 'SE', main: false },
+        { deg: 180, letter: 'S', main: true },
+        { deg: 225, letter: 'SW', main: false },
+        { deg: 270, letter: 'W', main: true },
+        { deg: 315, letter: 'NW', main: false }
+      ];
+      
+      directions.forEach(dir => {
+        const marker = document.createElement('div');
+        marker.className = `compass-marker ${dir.main ? 'main' : ''}`;
+        marker.style.transform = `rotate(${dir.deg}deg)`;
+        markersContainer.appendChild(marker);
+        
+        const letter = document.createElement('div');
+        letter.className = 'compass-letter';
+        letter.textContent = dir.letter;
+        letter.style.transform = `rotate(${-dir.deg}deg)`;
+        
+        // Position the letters
+        const radius = 85;
+        const angle = dir.deg * Math.PI / 180;
+        const x = radius * Math.sin(angle);
+        const y = -radius * Math.cos(angle);
+        
+        letter.style.left = `calc(50% + ${x}px - 0.5em)`;
+        letter.style.top = `calc(50% + ${y}px - 0.5em)`;
+        
+        markersContainer.appendChild(letter);
+      });
+    }
+    
+    // Initialize the application
+    function initApp() {
+      createCompassMarkers();
+      
+      // Add user marker with custom icon
+      const userIcon = L.divIcon({
+        className: 'user-position-marker',
+        html: '<div style="transform: rotate(0deg);"><i class="fas fa-user-circle fa-2x" style="color: #00f3ff;"></i></div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+      
+      userMarker = L.marker([userLat, userLng], {icon: userIcon}).addTo(map)
+        .bindPopup('<div style="text-align: center;"><i class="fas fa-user"></i><br><strong>Your current location</strong></div>');
+      
+      // Add direction arrow to map
+      directionArrow = L.marker([userLat, userLng], {
+        icon: L.divIcon({
+          className: 'direction-arrow-marker',
+          html: '<i class="fas fa-arrow-up fa-2x" style="color: #ff073a; text-shadow: 0 0 10px #ff073a;"></i>',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        })
+      }).addTo(map);
+      
+      // Add circle for accuracy
+      accuracyCircle = L.circle([userLat, userLng], {radius: 0}).addTo(map);
+      
+      // Add hazard zones to map
+      hazardZones.forEach(zone => {
+        L.circle([zone.lat, zone.lng], {
+          color: zone.type === 'danger' ? 'red' : 
+                 zone.type === 'landslide' ? 'orange' : 
+                 zone.type === 'cliff' ? 'darkred' : 
+                 zone.type === 'high_crime' ? 'purple' : 'blue',
+          fillColor: zone.type === 'danger' ? '#f03' : 
+                    zone.type === 'landslide' ? '#f90' : 
+                    zone.type === 'cliff' ? '#c03' : 
+                    zone.type === 'high_crime' ? '#93f' : '#39f',
+          radius: zone.radius
+        }).addTo(map).bindPopup(zone.message);
+      });
+      
+      // Add signal zones to map
+      signalZones.forEach(zone => {
+        L.circle([zone.lat, zone.lng], {
+          color: '#ffff00',
+          fillColor: '#ffff00',
+          opacity: 0.3,
+          fillOpacity: 0.1,
+          radius: zone.radius
+        }).addTo(map).bindPopup(`Low signal area: ${zone.strength}`);
+      });
+      
+      // Add important locations to map
+      addImportantLocations();
+      
+      if (navigator.geolocation) {
+        // Get current position first
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            updatePosition(position);
+            startMovementDetection();
+          },
+          error => handleLocationError(error),
+          {enableHighAccuracy: true, timeout: 5000, maximumAge: 0}
+        );
+        
+        // Then watch position
+        watchId = navigator.geolocation.watchPosition(
+          position => {
+            updatePosition(position);
+            detectMovement(position);
+            checkRouteDeviation(position);
+          },
+          error => handleLocationError(error),
+          {enableHighAccuracy: true, timeout: 5000, maximumAge: 0, frequency: 1000}
+        );
+        
+        // Update compass heading if available
+        if (window.DeviceOrientationEvent) {
+          window.addEventListener('deviceorientation', handleOrientation);
+        } else {
+          console.log('Device orientation not supported');
+        }
+        
+        // Check signal strength periodically
+        setInterval(checkSignalStrength, 10000);
+        
+      } else {
+        alert('Geolocation is not supported by your browser. This app requires GPS functionality.');
+      }
+      
+      // Add click event to map for setting destination
+      map.on('click', function(e) {
+        setDestination(e.latlng.lat, e.latlng.lng);
+      });
+      
+      // Setup destination input autocomplete
+      setupAutocomplete();
+      
+      // Setup map type selector
+      document.getElementById('map-type-selector').addEventListener('change', function(e) {
+        userSelectedMap = true;
+        changeMapType(e.target.value);
+      });
+      
+      // Setup routing buttons
+      document.getElementById('walking-route').addEventListener('click', function() {
+        currentRouteProfile = 'walking';
+        if (destinationMarker) {
+          updateRoute();
+        }
+      });
+      
+      document.getElementById('driving-route').addEventListener('click', function() {
+        currentRouteProfile = 'driving';
+        if (destinationMarker) {
+          updateRoute();
+        }
+      });
+      
+      document.getElementById('biking-route').addEventListener('click', function() {
+        currentRouteProfile = 'biking';
+        if (destinationMarker) {
+          updateRoute();
+        }
+      });
+    }
+    
+    // Change map type based on selection
+    function changeMapType(type) {
+      // Show loading indicator
+      document.getElementById('map-loading').style.display = 'block';
+      
+      // If switching to 3D mode, initialize Mapbox GL
+      if (type === '3d') {
+        init3DMap();
+        return;
+      }
+      
+      // If switching from 3D mode, remove Mapbox GL
+      if (is3DMode && mapboxMap) {
+        mapboxMap.remove();
+        mapboxMap = null;
+        is3DMode = false;
+        document.getElementById('map-mode-indicator').textContent = '2D Mode';
+        document.getElementById('map').style.display = 'block';
+      }
+      
+      // Remove current map layer
+      Object.values(mapLayers).forEach(layer => {
+        if (layer && map.hasLayer(layer)) {
+          map.removeLayer(layer);
+        }
+      });
+      
+      // Add new map layer
+      if (mapLayers[type]) {
+        mapLayers[type].addTo(map);
+        currentMapType = type;
+        
+        // Update map type info
+        document.getElementById('map-type-info').innerHTML = `<strong>${document.getElementById('map-type-selector').options[document.getElementById('map-type-selector').selectedIndex].text}:</strong> ${mapTypeInfo[type]}`;
+        
+        // Update map suggestion if destination is set and user hasn't manually selected a map
+        if (destinationMarker && !userSelectedMap) {
+          suggestBestMapType();
+        }
+      }
+      
+      // Hide loading indicator
+      document.getElementById('map-loading').style.display = 'none';
+    }
+    
+    // Initialize 3D Mapbox GL map
+    function init3DMap() {
+      is3DMode = true;
+      document.getElementById('map-mode-indicator').textContent = '3D Mode';
+      
+      // Hide Leaflet map temporarily
+      document.getElementById('map').style.display = 'none';
+      
+      // Initialize Mapbox GL map
+      mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+      
+      if (mapboxMap) {
+        mapboxMap.remove();
+      }
+      
+      mapboxMap = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: [userLng, userLat],
+        zoom: 13,
+        pitch: 45, // Initial pitch for 3D effect
+        bearing: 0
+      });
+      
+      // Add navigation control
+      mapboxMap.addControl(new mapboxgl.NavigationControl());
+      
+      // Add geolocation control
+      mapboxMap.addControl(new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true
+        },
+        trackUserLocation: true,
+        showUserLocation: true
+      }));
+      
+      // Add 3D terrain
+      mapboxMap.on('load', function() {
+        // Add terrain source
+        mapboxMap.addSource('mapbox-dem', {
+          'type': 'raster-dem',
+          'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+          'tileSize': 512,
+          'maxzoom': 14
+        });
+        
+        // Add the DEM source as a terrain layer with exaggerated height
+        mapboxMap.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+        
+        // Add sky layer for atmospheric effect
+        mapboxMap.addLayer({
+          'id': 'sky',
+          'type': 'sky',
+          'paint': {
+            'sky-type': 'atmosphere',
+            'sky-atmosphere-sun': [0.0, 0.0],
+            'sky-atmosphere-sun-intensity': 15
+          }
+        });
+        
+        // Add user marker
+        new mapboxgl.Marker({ color: '#00f3ff' })
+          .setLngLat([userLng, userLat])
+          .addTo(mapboxMap);
+          
+        // Hide loading indicator
+        document.getElementById('map-loading').style.display = 'none';
+      });
+      
+      // Update map type info
+      document.getElementById('map-type-info').innerHTML = `<strong>3D Map:</strong> ${mapTypeInfo['3d']}`;
+    }
+    
+    // Suggest the best map type based on destination
+    function suggestBestMapType() {
+      if (!destinationMarker) return;
+      
+      const destLatLng = destinationMarker.getLatLng();
+      const distance = calculateDistance(userLat, userLng, destLatLng.lat, destLatLng.lng);
+      
+      let suggestion = '';
+      let recommendedType = 'road';
+      
+      if (distance > 5000) {
+        suggestion = 'For long-distance navigation, Road map provides the best route planning.';
+        recommendedType = 'road';
+      } else {
+        const isNatural = isNaturalFeature(destLatLng.lat, destLatLng.lng);
+        
+        if (isNatural) {
+          suggestion = 'Your destination appears to be a natural feature. Terrain map will show elevation details.';
+          recommendedType = 'terrain';
+        } else {
+          const isUrban = isUrbanArea(destLatLng.lat, destLatLng.lng);
+          
+          if (isUrban) {
+            suggestion = 'You\'re navigating in an urban area. Road map is best for street navigation.';
+            recommendedType = 'road';
+          } else {
+            suggestion = 'Hybrid map provides both satellite imagery and labels for better orientation.';
+            recommendedType = 'hybrid';
+          }
+        }
+      }
+      
+      // Show suggestion without auto-switching
+      document.getElementById('suggestion-text').textContent = suggestion;
+      document.getElementById('map-suggestion').classList.add('visible');
+    }
+    
+    // Check if coordinates are likely a natural feature (simplified)
+    function isNaturalFeature(lat, lng) {
+      // Simple heuristic: check if elevation is significantly different from sea level
+      // In a real app, you would use a proper elevation API
+      return Math.random() > 0.7; // 30% chance for demo purposes
+    }
+    
+    // Check if coordinates are in an urban area (simplified)
+    function isUrbanArea(lat, lng) {
+      // Simple heuristic: check if near known urban features
+      // In a real app, you would use land use data or point of interest density
+      return Math.random() > 0.4; // 60% chance for demo purposes
+    }
+    
+    // Start movement detection
+    function startMovementDetection() {
+      document.getElementById('movement-indicator').style.background = 'var(--neon-green)';
+      document.getElementById('tracking-status').textContent = 'Tracking active';
+    }
+    
+    // Detect user movement
+    function detectMovement(position) {
+      const movementIndicator = document.getElementById('movement-indicator');
+      
+      if (lastPosition) {
+        const distance = calculateDistance(
+          lastPosition.coords.latitude, 
+          lastPosition.coords.longitude,
+          position.coords.latitude,
+          position.coords.longitude
+        );
+        
+        // If movement is detected (more than 5 meters)
+        if (distance > 5) {
+          movementIndicator.style.background = 'var(--neon-green)';
+          movementIndicator.style.animation = 'pulse 0.5s infinite';
+          
+          // Reset animation after a short time
+          clearTimeout(movementTimer);
+          movementTimer = setTimeout(() => {
+            movementIndicator.style.animation = 'pulse 1.5s infinite';
+          }, 2000);
+        }
+      }
+      
+      lastPosition = position;
+    }
+    
+    // Check if user is deviating from the route
+    function checkRouteDeviation(position) {
+      if (!routeControl || !destinationMarker) return;
+      
+      const userLat = position.coords.latitude;
+      const userLng = position.coords.longitude;
+      const destLatLng = destinationMarker.getLatLng();
+      
+      // Calculate distance to destination
+      const distanceToDestination = calculateDistance(userLat, userLng, destLatLng.lat, destLatLng.lng);
+      
+      // If moving away from destination
+      if (distanceToDestination > lastDistanceToDestination + 20) { // 20m threshold
+        document.getElementById('wrong-direction-warning').classList.add('visible');
+      } else {
+        document.getElementById('wrong-direction-warning').classList.remove('visible');
+      }
+      
+      lastDistanceToDestination = distanceToDestination;
+    }
+    
+    // Setup destination input autocomplete
+    function setupAutocomplete() {
+      const destinationInput = document.getElementById('destination-input');
+      const autocompleteList = document.getElementById('autocomplete-list');
+      
+      destinationInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        if (query.length < 3) {
+          autocompleteList.innerHTML = '';
+          return;
+        }
+        
+        // Use OpenStreetMap Nominatim for geocoding
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`)
+          .then(response => response.json())
+          .then(data => {
+            autocompleteItems = data;
+            autocompleteList.innerHTML = '';
+            
+            data.forEach((item, index) => {
+              const div = document.createElement('div');
+              div.className = 'autocomplete-item';
+              div.innerHTML = `<strong>${item.display_name}</strong>`;
+              div.addEventListener('click', function() {
+                destinationInput.value = item.display_name;
+                autocompleteList.innerHTML = '';
+                
+                // Set destination to the selected location
+                setDestination(parseFloat(item.lat), parseFloat(item.lon));
+              });
+              autocompleteList.appendChild(div);
+            });
+          })
+          .catch(error => {
+            console.error('Error fetching autocomplete results:', error);
+          });
+      });
+      
+      // Hide autocomplete when clicking outside
+      document.addEventListener('click', function(e) {
+        if (e.target !== destinationInput) {
+          autocompleteList.innerHTML = '';
+        }
+      });
+    }
+    
+    // Update user's position on the map
+    function updatePosition(position, updateView = true) {
+      userLat = position.coords.latitude;
+      userLng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+      
+      // Update accuracy display
+      document.getElementById('accuracy-display').textContent = `Accuracy: ${Math.round(accuracy)}m`;
+      
+      // Update map view only if requested
+      if (updateView && !is3DMode) {
+        map.setView([userLat, userLng], 16);
+      } else if (updateView && is3DMode && mapboxMap) {
+        mapboxMap.flyTo({
+          center: [userLng, userLat],
+          zoom: 16,
+          essential: true
+        });
+      }
+      
+      // Update Leaflet map elements
+      userMarker.setLatLng([userLat, userLng]);
+      accuracyCircle.setLatLng([userLat, userLng]);
+      accuracyCircle.setRadius(accuracy);
+      directionArrow.setLatLng([userLat, userLng]);
+      
+      // Update Mapbox GL map if in 3D mode
+      if (is3DMode && mapboxMap) {
+        // Update user marker position
+        // In a real implementation, you would update the Mapbox marker here
+      }
+      
+      // Check for hazards
+      checkForHazards(userLat, userLng);
+      
+      // Update direction if available
+      if (position.coords.heading) {
+        userHeading = position.coords.heading;
+        updateDirection(userHeading);
+      }
+      
+      // Update signal strength based on position
+      updateSignalStrength(userLat, userLng);
+      
+      // Update route if destination is set
+      if (destinationMarker) {
+        updateNavigation();
+      }
+    }
+    
+    // Handle location errors
+    function handleLocationError(error) {
+      console.error('Error getting location:', error);
+      let message = '';
+      
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          message = 'Location access denied. Please enable GPS to use this app.';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          message = 'Location information unavailable.';
+          break;
+        case error.TIMEOUT:
+          message = 'Location request timed out.';
+          break;
+        default:
+          message = 'An unknown error occurred.';
+          break;
+      }
+      
+      document.getElementById('alert-message').textContent = message;
+      document.getElementById('alert-box').classList.add('visible');
+      document.getElementById('movement-indicator').style.background = 'var(--warning-color)';
+      document.getElementById('tracking-status').textContent = 'Tracking error';
+    }
+    
+    // Check for hazards near user's position
+    function checkForHazards(lat, lng) {
+      let nearHazard = false;
+      
+      hazardZones.forEach(zone => {
+        const distance = calculateDistance(lat, lng, zone.lat, zone.lng);
+        
+        if (distance < zone.radius) {
+          document.getElementById('alert-message').textContent = zone.message;
+          document.getElementById('alert-box').classList.add('visible');
+          document.getElementById('hazard-status').textContent = 'Hazard detected!';
+          document.getElementById('hazard-status').className = 'danger';
+          nearHazard = true;
+          
+          // Provide alternative direction
+          provideAlternativeDirection(lat, lng, zone);
+        }
+      });
+      
+      if (!nearHazard) {
+        document.getElementById('alert-box').classList.remove('visible');
+        document.getElementById('hazard-status').textContent = 'No hazards detected';
+        document.getElementById('hazard-status').className = '';
+      }
+    }
+    
+    // Calculate distance between two points
+    function calculateDistance(lat1, lng1, lat2, lng2) {
+      const R = 6371000; // Earth's radius in meters
+      const dLat = deg2rad(lat2 - lat1);
+      const dLng = deg2rad(lng2 - lng1);
+      
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
+      
+      return distance;
+    }
+    
+    function deg2rad(deg) {
+      return deg * (Math.PI/180);
+    }
+    
+    // Provide alternative direction when near hazard
+    function provideAlternativeDirection(lat, lng, hazard) {
+      // Simple logic: suggest moving perpendicular to the hazard direction
+      const dx = hazard.lng - lng;
+      const dy = hazard.lat - lat;
+      
+      // Determine safe direction (perpendicular to hazard direction)
+      let safeDirection = '';
+      if (Math.abs(dx) > Math.abs(dy)) {
+        safeDirection = dx > 0 ? 'west' : 'east';
+      } else {
+        safeDirection = dy > 0 ? 'south' : 'north';
+      }
+      
+      document.getElementById('navigation-instruction').innerHTML = 
+        `<div class="instruction-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <p class="danger">Warning! Hazard detected. Move ${safeDirection} to avoid danger.</p>`;
+    }
+    
+    // Handle device orientation for compass
+    function handleOrientation(event) {
+      if (event.alpha !== null) {
+        // Use the alpha value (compass direction)
+        userHeading = 360 - event.alpha;
+        updateDirection(userHeading);
+      }
+    }
+    
+    // Update compass direction
+    function updateDirection(heading) {
+      const directions = ['North', 'North-East', 'East', 'South-East', 'South', 'South-West', 'West', 'North-West'];
+      const index = Math.round(heading / 45) % 8;
+      document.getElementById('direction-status').textContent = directions[index] + ` (${Math.round(heading)}°)`;
+      document.getElementById('compass-direction').textContent = directions[index].substring(0, 1);
+      document.getElementById('direction-degree').textContent = `${Math.round(heading)}°`;
+      
+      // Update compass arrow
+      document.getElementById('direction-arrow').style.transform = `translateX(-50%) rotate(${heading}deg)`;
+      
+      // Update direction arrow on map
+      directionArrow.setLatLng(userMarker.getLatLng());
+      directionArrow.setIcon(L.divIcon({
+        className: 'direction-arrow-marker',
+        html: `<i class="fas fa-arrow-up fa-2x" style="color: #ff073a; text-shadow: 0 0 10px #ff073a; transform: rotate(${heading}deg);"></i>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      }));
+      
+      // Update user marker rotation
+      userMarker.setIcon(L.divIcon({
+        className: 'user-position-marker',
+        html: `<div style="transform: rotate(${heading}deg);"><i class="fas fa-user-circle fa-2x" style="color: #00f3ff;"></i></div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      }));
+    }
+    
+    // Check signal strength based on position
+    function checkSignalStrength() {
+      updateSignalStrength(userLat, userLng);
+    }
+    
+    // Update signal strength based on position (simulated)
+    function updateSignalStrength(lat, lng) {
+      let signalStrength = 'Good';
+      
+      // Check if in a known poor signal zone
+      signalZones.forEach(zone => {
+        const distance = calculateDistance(lat, lng, zone.lat, zone.lng);
+        if (distance < zone.radius) {
+          signalStrength = zone.strength;
+        }
+      });
+      
+      // Check if in a known good signal zone (overrides poor signal)
+      goodSignalZones.forEach(zone => {
+        const distance = calculateDistance(lat, lng, zone.lat, zone.lng);
+        if (distance < zone.radius) {
+          signalStrength = 'Excellent';
+        }
+      });
+      
+      document.getElementById('signal-status').textContent = signalStrength;
+      
+      // Update signal bars
+      const bars = document.querySelectorAll('.bar');
+      bars.forEach((bar, index) => {
+        bar.classList.remove('active', 'warning', 'danger');
+        
+        if (signalStrength === 'Excellent' && index < 5) {
+          bar.classList.add('active');
+        } else if (signalStrength === 'Good' && index < 4) {
+          bar.classList.add('active');
+        } else if (signalStrength === 'Fair' && index < 3) {
+          bar.classList.add('warning');
+        } else if (signalStrength === 'Poor' && index < 2) {
+          bar.classList.add('danger');
+        } else if (signalStrength === 'No Signal' && index < 1) {
+          bar.classList.add('danger');
+        }
+      });
+      
+      if (signalStrength === 'Poor' || signalStrength === 'No Signal') {
+        document.getElementById('signal-status').className = 'danger';
+        
+        // Show signal improvement suggestion
+        document.getElementById('signal-suggestion').style.display = 'flex';
+        document.getElementById('alert-message').textContent = `Low signal detected (${signalStrength}). Moving east may improve your connection.`;
+        document.getElementById('alert-box').classList.add('visible');
+        
+        // Find nearest good signal zone and suggest direction
+        let nearestZone = null;
+        let minDistance = Infinity;
+        
+        goodSignalZones.forEach(zone => {
+          const distance = calculateDistance(lat, lng, zone.lat, zone.lng);
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestZone = zone;
+          }
+        });
+        
+        if (nearestZone) {
+          const dx = nearestZone.lng - lng;
+          const dy = nearestZone.lat - lat;
+          
+          let direction = '';
+          if (Math.abs(dx) > Math.abs(dy)) {
+            direction = dx > 0 ? 'east' : 'west';
+          } else {
+            direction = dy > 0 ? 'north' : 'south';
+          }
+          
+          document.getElementById('signal-direction').textContent = direction;
+          
+          // Set arrow direction
+          let arrowRotation = 0;
+          if (direction === 'east') arrowRotation = 0;
+          else if (direction === 'south') arrowRotation = 90;
+          else if (direction === 'west') arrowRotation = 180;
+          else if (direction === 'north') arrowRotation = 270;
+          
+          document.getElementById('signal-arrow').style.transform = `rotate(${arrowRotation}deg)`;
+        }
+      } else {
+        document.getElementById('signal-status').className = signalStrength === 'Excellent' ? 'good' : 'warning';
+        document.getElementById('signal-suggestion').style.display = 'none';
+        
+        if (signalStrength === 'Excellent' || signalStrength === 'Good') {
+          document.getElementById('alert-box').classList.remove('visible');
+        }
+      }
+    }
+    
+    // Set destination function
+    function setDestination(lat, lng) {
+      // Reset user selection flag when new destination is set
+      userSelectedMap = false;
+      
+      // Remove existing destination marker if any
+      if (destinationMarker) {
+        map.removeLayer(destinationMarker);
+      }
+      
+      // Remove existing route control if any
+      if (routeControl) {
+        map.removeControl(routeControl);
+      }
+      
+      // Create new destination marker
+      destinationMarker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: 'destination-marker',
+          html: '<i class="fas fa-map-marker-alt fa-2x" style="color: #39ff14;"></i>',
+          iconSize: [30, 30],
+          iconAnchor: [15, 30]
+        })
+      }).addTo(map).bindPopup('Destination').openPopup();
+      
+      // Update destination status
+      document.getElementById('destination-status').textContent = `Set (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+      
+      // Create routing waypoints
+      routingWaypoints = [
+        L.latLng(userLat, userLng),
+        L.latLng(lat, lng)
+      ];
+      
+      // Update route
+      updateRoute();
+      
+      // Suggest best map type
+      suggestBestMapType();
+      analyzeDestination(lat, lng);
+    }
+    
+    // Enhanced destination analysis
+    function analyzeDestination(lat, lng) {
+      // In a real app, you would use APIs to get detailed information about the location
+      // For this demo, we'll use simplified logic based on distance and some random factors
+      
+      const distance = calculateDistance(userLat, userLng, lat, lng);
+      const isUrban = Math.random() > 0.4;
+      const hasWater = Math.random() > 0.7;
+      const isCultural = Math.random() > 0.6;
+      const isNatural = Math.random() > 0.7;
+      
+      let recommendation = '';
+      let mapTypes = [];
+      
+      if (distance > 5000) {
+        // Long distance
+        recommendation = 'For long-distance travel, consider:';
+        mapTypes = ['road', 'navigation'];
+      } else if (isUrban) {
+        // Urban area
+        recommendation = 'You\'re heading to an urban area. Recommended maps:';
+        mapTypes = ['road', 'transit', 'indoor'];
+        
+        if (isCultural) {
+          recommendation = 'You\'re heading to a cultural urban area. Recommended maps:';
+          mapTypes = ['road', 'custom', 'choropleth'];
+        }
+      } else if (isNatural) {
+        // Natural area
+        recommendation = 'You\'re heading to a natural area. Recommended maps:';
+        mapTypes = ['terrain', 'topographic', 'satellite'];
+        
+        if (hasWater) {
+          recommendation = 'You\'re heading to a water-based natural area. Recommended maps:';
+          mapTypes = ['satellite', 'hybrid', 'outdoors'];
+        }
+      } else {
+        // Mixed area
+        recommendation = 'For this mixed environment, consider:';
+        mapTypes = ['hybrid', 'road', 'outdoors'];
+      }
+      
+      // Format the recommendation message
+      let message = `<strong>${recommendation}</strong><br>`;
+      mapTypes.forEach(type => {
+        const mapName = document.querySelector(`#map-type-selector option[value="${type}"]`).text;
+        message += `• ${mapName}<br>`;
+      });
+      
+      message += '<br>Select the most appropriate map type from the dropdown above.';
+      
+      // Show the recommendation
+      document.getElementById('suggestion-text').innerHTML = message;
+      document.getElementById('map-suggestion').classList.add('visible');
+    }
+    
+    // Update route based on current profile
+    function updateRoute() {
+      // Remove existing route control if any
+      if (routeControl) {
+        map.removeControl(routeControl);
+      }
+      
+      // Create route using OSRM
+      routeControl = L.Routing.control({
+        waypoints: routingWaypoints,
+        routeWhileDragging: false,
+        showAlternatives: true,
+        altLineOptions: {
+          styles: [
+            {color: 'black', opacity: 0.15, weight: 9},
+            {color: 'white', opacity: 0.8, weight: 6},
+            {color: '#39ff14', opacity: 1, weight: 4}
+          ]
+        },
+        lineOptions: {
+          styles: [
+            {color: 'black', opacity: 0.15, weight: 9},
+            {color: 'white', opacity: 0.8, weight: 6},
+            {color: '#39ff14', opacity: 1, weight: 4}
+          ]
+        },
+        createMarker: function() { return null; }, // No markers for via points
+        router: L.Routing.osrmv1({
+          serviceUrl: 'https://router.project-osrm.org/route/v1',
+          profile: currentRouteProfile === 'walking' ? 'foot' : 
+                   currentRouteProfile === 'biking' ? 'bike' : 'car'
+        })
+      }).addTo(map);
+      
+      // Update navigation instructions
+      updateNavigation();
+      
+      // Listen for route events
+      routeControl.on('routesfound', function(e) {
+        const routes = e.routes;
+        const bestRoute = routes[0];
+        
+        // Update distance and time
+        const distance = (bestRoute.summary.totalDistance / 1000).toFixed(1);
+        
+        // Calculate time based on transportation mode
+        let totalSeconds;
+        
+        if (currentRouteProfile === 'walking') {
+          // Walking: ~5 km/h average speed
+          totalSeconds = (bestRoute.summary.totalDistance / 1000) / 5 * 3600;
+        } else if (currentRouteProfile === 'biking') {
+          // Biking: ~15 km/h average speed
+          totalSeconds = (bestRoute.summary.totalDistance / 1000) / 15 * 3600;
+        } else {
+          // Driving: use OSRM's time estimate
+          totalSeconds = bestRoute.summary.totalTime;
+        }
+        
+        // Calculate hours and minutes properly
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        
+        let timeText = '';
+        if (hours > 0) {
+          timeText = `${hours} hr ${minutes} min`;
+        } else {
+          timeText = `${minutes} min`;
+        }
+        
+        document.getElementById('navigation-instruction').innerHTML = 
+          `<div class="instruction-icon"><i class="fas fa-route"></i></div>
+          <p>Route calculated: ${distance} km, ~${timeText}</p>`;
+        
+        // Update route info
+        document.getElementById('route-info').innerHTML = `
+          <strong>Route Information:</strong><br>
+          Distance: ${distance} km<br>
+          Estimated Time: ~${timeText}<br>
+          Mode: ${currentRouteProfile.charAt(0).toUpperCase() + currentRouteProfile.slice(1)}
+        `;
+        
+        // Update alternative routes
+        let alternativesHtml = '';
+        routes.forEach((route, index) => {
+          const altDistance = (route.summary.totalDistance / 1000).toFixed(1);
+          
+          // Calculate time for alternative routes based on mode
+          let altTotalSeconds;
+          
+          if (currentRouteProfile === 'walking') {
+            altTotalSeconds = (route.summary.totalDistance / 1000) / 5 * 3600;
+          } else if (currentRouteProfile === 'biking') {
+            altTotalSeconds = (route.summary.totalDistance / 1000) / 15 * 3600;
+          } else {
+            altTotalSeconds = route.summary.totalTime;
+          }
+          
+          const altHours = Math.floor(altTotalSeconds / 3600);
+          const altMinutes = Math.floor((altTotalSeconds % 3600) / 60);
+          
+          let altTimeText = '';
+          if (altHours > 0) {
+            altTimeText = `${altHours} hr ${altMinutes} min`;
+          } else {
+            altTimeText = `${altMinutes} min`;
+          }
+          
+          alternativesHtml += `
+            <li>
+              <i class="fas fa-route"></i> 
+              ${index === 0 ? 'Main route' : 'Alternative ' + index}: 
+              ${altDistance} km, ~${altTimeText}
+            </li>`;
+        });
+        
+        document.getElementById('routes-list').innerHTML = alternativesHtml;
+      });
+    }
+    
+    // Update navigation instructions
+    function updateNavigation() {
+      if (!destinationMarker) return;
+      
+      const destLatLng = destinationMarker.getLatLng();
+      const distance = calculateDistance(userLat, userLng, destLatLng.lat, destLatLng.lng);
+      
+      if (distance < 50) {
+        document.getElementById('navigation-instruction').innerHTML = 
+          `<div class="instruction-icon"><i class="fas fa-flag-checkered"></i></div>
+          <p>You have arrived at your destination!</p>`;
+        return;
+      }
+      
+      // Calculate bearing between current position and destination
+      const bearing = calculateBearing(userLat, userLng, destLatLng.lat, destLatLng.lng);
+      
+      // Calculate difference between user heading and bearing to destination
+      let directionDiff = bearing - userHeading;
+      if (directionDiff < 0) directionDiff += 360;
+      
+      let instruction = '';
+      let icon = '';
+      
+      if (directionDiff > 337.5 || directionDiff < 22.5) {
+        instruction = 'Continue straight ahead';
+        icon = 'fa-arrow-up';
+      } else if (directionDiff >= 22.5 && directionDiff < 67.5) {
+        instruction = 'Turn slightly right';
+        icon = 'fa-arrow-up-right';
+      } else if (directionDiff >= 67.5 && directionDiff < 112.5) {
+        instruction = 'Turn right';
+        icon = 'fa-arrow-right';
+      } else if (directionDiff >= 112.5 && directionDiff < 157.5) {
+        instruction = 'Turn sharply right';
+        icon = 'fa-arrow-down-right';
+      } else if (directionDiff >= 157.5 && directionDiff < 202.5) {
+        instruction = 'Turn around';
+        icon = 'fa-undo';
+      } else if (directionDiff >= 202.5 && directionDiff < 247.5) {
+        instruction = 'Turn sharply left';
+        icon = 'fa-arrow-down-left';
+      } else if (directionDiff >= 247.5 && directionDiff < 292.5) {
+        instruction = 'Turn left';
+        icon = 'fa-arrow-left';
+      } else if (directionDiff >= 292.5 && directionDiff < 337.5) {
+        instruction = 'Turn slightly left';
+        icon = 'fa-arrow-up-left';
+      }
+      
+      document.getElementById('navigation-instruction').innerHTML = 
+        `<div class="instruction-icon"><i class="fas ${icon}"></i></div>
+        <p>${instruction} to destination (${Math.round(distance)}m away)</p>`;
+    }
+    
+    // Calculate bearing between two points
+    function calculateBearing(lat1, lng1, lat2, lng2) {
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δλ = (lng2 - lng1) * Math.PI / 180;
+      
+      const y = Math.sin(Δλ) * Math.cos(φ2);
+      const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+      const θ = Math.atan2(y, x);
+      
+      return (θ * 180 / Math.PI + 360) % 360;
+    }
+    
+    // Clear destination function
+    function clearDestination() {
+      if (destinationMarker) {
+        map.removeLayer(destinationMarker);
+        destinationMarker = null;
+      }
+      if (routeControl) {
+        map.removeControl(routeControl);
+        routeControl = null;
+      }
+      document.getElementById('destination-status').textContent = 'Not set';
+      document.getElementById('destination-input').value = '';
+      document.getElementById('navigation-instruction').innerHTML = 
+        `<div class="instruction-icon"><i class="fas fa-check-circle"></i></div>
+        <p>Waiting for destination setting</p>`;
+      document.getElementById('routes-list').innerHTML = `
+        <li><i class="fas fa-arrow-left"></i> No routes calculated yet</li>
+      `;
+      document.getElementById('map-suggestion').classList.remove('visible');
+      document.getElementById('wrong-direction-warning').classList.remove('visible');
+      document.getElementById('route-info').innerHTML = 'No route information available';
+      
+      // Reset user selection flag
+      userSelectedMap = false;
+    }
+    
+    // Toggle theme (light/dark mode)
+    function toggleTheme() {
+      const body = document.body;
+      if (body.classList.contains('light-mode')) {
+        body.classList.remove('light-mode');
+        document.getElementById('theme-toggle').innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
+        isDarkMode = false;
+        
+        // Update map if needed
+        if (currentMapType === 'dark') {
+          changeMapType('road');
+          document.getElementById('map-type-selector').value = 'road';
+        }
+      } else {
+        body.classList.add('light-mode');
+        document.getElementById('theme-toggle').innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+        isDarkMode = true;
+      }
+    }
+    
+    // Initialize the app when the page loads
+    window.onload = initApp;
+    
+    // Add event listeners for destination controls
+    document.getElementById('set-destination').addEventListener('click', function() {
+      const input = document.getElementById('destination-input').value;
+      if (input) {
+        // Check if input is coordinates
+        if (input.includes(',')) {
+          const parts = input.split(',');
+          if (parts.length === 2) {
+            const lat = parseFloat(parts[0].trim());
+            const lng = parseFloat(parts[1].trim());
+            if (!isNaN(lat) && !isNaN(lng)) {
+              setDestination(lat, lng);
+            } else {
+              alert('Please enter valid coordinates (latitude, longitude)');
+            }
+          } else {
+            alert('Please enter coordinates in the format: latitude, longitude');
+          }
+        } else {
+          // Try to geocode the address
+          fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}&limit=1`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.length > 0) {
+                setDestination(parseFloat(data[0].lat), parseFloat(data[0].lon));
+              } else {
+                alert('Location not found. Please try a different search term.');
+              }
+            })
+            .catch(error => {
+              console.error('Error geocoding address:', error);
+              alert('Error finding location. Please try again.');
+            });
+        }
+      }
+    });
+    
+    document.getElementById('clear-destination').addEventListener('click', clearDestination);
+    
+    // Button event listeners
+    document.getElementById('refresh-btn').addEventListener('click', function() {
+      // Clear the destination first
+      clearDestination();
+      
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            // Update position without changing view yet
+            updatePosition(position, false);
+            
+            // Smoothly animate back to current location
+            if (!is3DMode) {
+              map.setView([position.coords.latitude, position.coords.longitude], 16, {
+                animate: true,
+                duration: 1.0,
+                easeLinearity: 0.25
+              });
+            } else if (is3DMode && mapboxMap) {
+              mapboxMap.flyTo({
+                center: [position.coords.longitude, position.coords.latitude],
+                zoom: 16,
+                essential: true
+              });
+            }
+          },
+          error => handleLocationError(error),
+          {enableHighAccuracy: true, timeout: 5000, maximumAge: 0}
+        );
+      }
+    });
+    
+    // Panic button functionality
+    document.getElementById('panic-btn').addEventListener('click', function() {
+      document.getElementById('panic-modal').classList.add('visible');
+    });
+    
+    document.getElementById('panic-cancel').addEventListener('click', function() {
+      document.getElementById('panic-modal').classList.remove('visible');
+    });
+    
+    // Emergency option button handlers
+    document.getElementById('medical-emergency').addEventListener('click', function() {
+      sendEmergencyAlert('Medical Emergency', 'Medical assistance is being dispatched to your location.');
+    });
+    
+    document.getElementById('threatening-emergency').addEventListener('click', function() {
+      sendEmergencyAlert('Threatening Emergency', 'Security services are being notified and dispatched to your location.');
+    });
+    
+    document.getElementById('other-emergency').addEventListener('click', function() {
+      document.getElementById('panic-modal').classList.remove('visible');
+      document.getElementById('others-emergency-modal').classList.add('visible');
+    });
+    
+    // Others emergency modal handlers
+    document.getElementById('others-cancel').addEventListener('click', function() {
+      document.getElementById('others-emergency-modal').classList.remove('visible');
+      document.getElementById('panic-modal').classList.add('visible');
+    });
+    
+    document.getElementById('others-confirm').addEventListener('click', function() {
+      const description = document.getElementById('emergency-description').value.trim();
+      if (description) {
+        sendEmergencyAlert('Other Emergency', `Emergency reported: ${description}. Help is being dispatched to your location.`);
+        document.getElementById('emergency-description').value = '';
+      } else {
+        alert('Please describe your emergency situation before sending the alert.');
+      }
+    });
+    
+    // Function to send emergency alert
+    function sendEmergencyAlert(type, message) {
+      alert(`${type} alert sent! ${message} Your location has been shared with emergency services.`);
+      
+      // Close all modals
+      document.getElementById('panic-modal').classList.remove('visible');
+      document.getElementById('others-emergency-modal').classList.remove('visible');
+      
+      // In a real app, this would send the user's location and emergency type to emergency services
+      console.log(`Emergency Alert Sent - Type: ${type}, Location: ${userLat}, ${userLng}`);
+    }
+    
+    // Function to find the nearest location of a specific type
+    function findNearestLocation(type) {
+      let nearestLocation = null;
+      let minDistance = Infinity;
+      
+      importantLocations.forEach(location => {
+        if (location.type === type) {
+          const distance = calculateDistance(userLat, userLng, location.lat, location.lng);
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestLocation = location;
+          }
+        }
+      });
+      
+      return nearestLocation;
+    }
+    
+    // Function to route to the nearest location of a specific type
+    function routeToNearest(type) {
+      const nearestLocation = findNearestLocation(type);
+      
+      if (nearestLocation) {
+        let locationName = '';
+        let iconClass = '';
+        
+        switch(type) {
+          case 'hospital':
+            locationName = 'Hospital';
+            iconClass = 'heartbeat';
+            break;
+          case 'police':
+            locationName = 'Police Station';
+            iconClass = 'shield-alt';
+            break;
+          case 'crowded':
+            locationName = 'Crowded Area';
+            iconClass = 'users';
+            break;
+          default:
+            locationName = 'Location';
+            iconClass = 'map-marker-alt';
+        }
+        
+        const distance = calculateDistance(userLat, userLng, nearestLocation.lat, nearestLocation.lng);
+        
+        // Show confirmation message
+        const confirmed = confirm(`Route to nearest ${locationName}: ${nearestLocation.name}?\n\nDistance: ${Math.round(distance)}m`);
+        
+        if (confirmed) {
+          // Set destination to the nearest location
+          setDestination(nearestLocation.lat, nearestLocation.lng);
+          
+          // Update navigation instruction with context
+          document.getElementById('navigation-instruction').innerHTML = 
+            `<div class="instruction-icon"><i class="fas fa-${iconClass}"></i></div>
+            <p class="danger">${type === 'crowded' ? 'Navigating to' : 'Emergency Route: Heading to nearest'} ${locationName}</p>
+            <p><strong>${nearestLocation.name}</strong><br>
+            Distance: ${Math.round(distance)}m</p>`;
+          
+          // Show routing notification
+          showEmergencyRoutingNotification(type, nearestLocation.name, Math.round(distance));
+        }
+      } else {
+        alert(`No ${type} found in the area.`);
+      }
+    }
+    
+    // Function to route to a specific location
+    function routeToThis(lat, lng, name) {
+      const confirmed = confirm(`Route to ${name}?`);
+      
+      if (confirmed) {
+        setDestination(parseFloat(lat), parseFloat(lng));
+        
+        // Update navigation instruction
+        document.getElementById('navigation-instruction').innerHTML = 
+          `<div class="instruction-icon"><i class="fas fa-location-arrow"></i></div>
+          <p>Routing to: <strong>${name}</strong></p>`;
+      }
+    }
+    
+    // Function to show emergency routing notification
+    function showEmergencyRoutingNotification(type, locationName, distance) {
+      // Create notification element
+      const notification = document.createElement('div');
+      notification.className = 'emergency-routing-notification';
+      notification.innerHTML = `
+        <div class="notification-content">
+          <i class="fas fa-${type === 'hospital' ? 'heartbeat' : 'shield-alt'}"></i>
+          <div class="notification-text">
+            <h4>Emergency Route Active</h4>
+            <p>Routing to nearest ${type}: <strong>${locationName}</strong></p>
+            <p>Distance: ${distance}m</p>
+          </div>
+          <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+      `;
+      
+      // Add to page
+      document.body.appendChild(notification);
+      
+      // Auto-remove after 10 seconds
+      setTimeout(() => {
+        if (notification.parentElement) {
+          notification.remove();
+        }
+      }, 10000);
+    }
+    
+    // Theme toggle
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    
+    // Add click handlers for legend items
+    document.addEventListener('DOMContentLoaded', function() {
+      // Hospital legend click handler
+      const hospitalLegend = document.querySelector('.legend-item:first-of-type');
+      if (hospitalLegend) {
+        hospitalLegend.addEventListener('click', function() {
+          routeToNearest('hospital');
+        });
+      }
+      
+      // Crowded areas legend click handler
+      const crowdedLegend = document.querySelector('.legend-item:nth-of-type(2)');
+      if (crowdedLegend) {
+        crowdedLegend.addEventListener('click', function() {
+          routeToNearest('crowded');
+        });
+      }
+      
+      // Police station legend click handler
+      const policeLegend = document.querySelector('.legend-item:last-of-type');
+      if (policeLegend) {
+        policeLegend.addEventListener('click', function() {
+          routeToNearest('police');
+        });
+      }
+    });
+  </script>
+</body>
+</html>
